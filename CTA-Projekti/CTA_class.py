@@ -15,6 +15,7 @@ class CTAClass:
         self.raw_data = CTAClass.csv_read(self.orig_path)
         self.data = CTAClass.convert_dtypes(self.raw_data)
         self.handle_special_cases(**feature_data.CUSTOM_HANDLING)
+        self.keep_pectus()
 
     # returns a dataframe where each column has been converted to the best possible datatype
     @staticmethod
@@ -85,19 +86,29 @@ class CTAClass:
             return df
 
     @staticmethod
-    def handle_require(df, label, one_of=None, min_val=None, max_val=None):
+    def handle_require(df, label, one_of=None, min_val=None, max_val=None, how='all'):
+
+        def combine(a, b, how):
+            if how == 'all':
+                return a & b
+            else:
+                return a | b
+
         orig_filter = None
         if label == 'index':
             orig_filter = getattr(df, label)
         else:
             orig_filter = df.loc[:, label]
-        filter = orig_filter.isin(orig_filter)
+        if how == 'all':
+            filter = orig_filter.isin(orig_filter)
+        else:
+            filter = orig_filter.isin([])
         if one_of is not None:
-            filter = filter & orig_filter.isin(one_of)
+            filter = combine(filter, orig_filter.isin(one_of), how)
         if min_val is not None:
-            filter = filter & (orig_filter >= min_val)
+            filter = combine(filter, (orig_filter >= min_val), how)
         if max_val is not None:
-            filter = filter & (orig_filter <= max_val)
+            filter = combine(filter, (orig_filter <= max_val), how)
         df = df.loc[filter, :]
         return df
 
@@ -108,11 +119,13 @@ class CTAClass:
             df.loc[df.loc[:, label].isin(vals)] = i if i != missing else n_max
         return df
 
+    def keep_pectus(self):
+        filter1 = self.data.loc[:, 'Study indication'] == 11
+        filter2 = self.data.index.isin(feature_data.PECTUS_IDS)
+        self.data = self.data.loc[~(filter1 & filter2)]
+        pass
+
 # for testing purposes
 if __name__ == "__main__":
     cta_data = CTAClass(feature_data.CURRENT_DATA_FILE)
-    data_types = cta_data.data.at[2, 'BMI']
-    print(type(data_types))
-
-
 

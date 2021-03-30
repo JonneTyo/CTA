@@ -9,6 +9,8 @@ csv_headers_original = csv_read(CURRENT_DATA_FILE).columns
 field_types = ['perustiedot', 'cta', 'perfuusio', 'seuranta', 'laakitys', 'labrat_ennen', 'labrat_jalkeen', 'ttgene',
                'tutkimukset']
 
+PECTUS_IDS = csv_read(DATA_DIR + 'PECTUS.csv').index
+
 # features to remove
 '''ftr = ['Turku ID',  "Previous ID (if there is a former CTA)", "Data collector's name", "Complete?",
        "CTA failed/nondiagnostic (choice=fail)", "PET study failed/nondiagnostic (choice=fail)",
@@ -51,13 +53,16 @@ data_handling = {
 feature_handling_frame = pd.DataFrame(data=data_handling, index=data_handling_functions)
 
 CUSTOM_HANDLING = {
+    'index': {
+        'require': {'min_val': 862}
+    },
     'diabetes': {
         'missing': {'fill_val': 4},
         'transform': {'combine': [(1, 2)],
                       'missing': 0},
     },
     'Study indication': {
-        'require': {'one_of': [1, 2, 4, 5]}
+        'require': {'one_of': [1, 2, 4, 5, 11]}
     },
     'Chestpain': {
         'missing': {'fill_val': 3}
@@ -65,9 +70,6 @@ CUSTOM_HANDLING = {
     'Smoking': {
         'transform': {'combine': [(1, 3)],
                       'missing': 0}
-    },
-    'index': {
-        'require': {'min_val': 862}
     }
 }
 
