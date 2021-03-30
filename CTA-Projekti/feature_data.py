@@ -1,6 +1,7 @@
 import pandas as pd
 from data_handler import csv_read
-import numpy as np
+import datetime
+END_OF_FOLLOW_UP_DATE = datetime.date(2019, 12, 31)
 
 DATA_DIR = 'Original data\\'
 CURRENT_DATA_FILE =  DATA_DIR + 'CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
@@ -8,16 +9,8 @@ csv_headers_original = csv_read(CURRENT_DATA_FILE).columns
 field_types = ['perustiedot', 'cta', 'perfuusio', 'seuranta', 'laakitys', 'labrat_ennen', 'labrat_jalkeen', 'ttgene',
                'tutkimukset']
 
-# features of interest
-foi = ['diabetes', 'Chestpain', 'Passed time']
-feature_types = ['- type of stenosis', 'STR_seg_', 'Stress ARVIO_']
-for label in csv_headers_original:
-    for f in feature_types:
-        if (f in label) and ('ARVIO_GLOBAL' not in label):
-            foi.append(label)
-
 # features to remove
-ftr = ['Turku ID',  "Previous ID (if there is a former CTA)", "Data collector's name", "Complete?",
+'''ftr = ['Turku ID',  "Previous ID (if there is a former CTA)", "Data collector's name", "Complete?",
        "CTA failed/nondiagnostic (choice=fail)", "PET study failed/nondiagnostic (choice=fail)",
        'CARDIOVASCULAR DEATH (choice=cardiovascular death)', 'Personal identification number ', 'Patient name',
        'NON-CARDIOVASCULAR DEATH (choice=non-cardiovascular death)', 'EXITUS, end of follow-up (date)',
@@ -35,17 +28,8 @@ ftr = ['Turku ID',  "Previous ID (if there is a former CTA)", "Data collector's 
        'Sending unit (Kts. Lähete)', 'SELOKEN', 'DINIT', 'DINIT ', 'DINIT  ', 'CTA date', 'Complete data on baseline medication',
        'CTA image quality', 'Betablocker', 'Lipid-lowering drug', 'Anti-platelet drug (ASA or other)',
        'Anticoagulant', 'Long-acting nitrate', 'Diuretic', 'ACE-inhibitor', 'ATR-blocker',
-       'Calcium channel blocker', 'Antiarrhythmic drug', 'CTA_LOYD', 'Stress ARVIO_GLOBAL']
-counter = 1
-for label in csv_headers_original:
-    if ' - artefact ' in label or 'Complete?' in label or 'Contrast agent' in label or ' - end of follow-up' in label:
-        ftr.append(label)
+       'Calcium channel blocker', 'Antiarrhythmic drug', 'CTA_LOYD', 'Stress ARVIO_GLOBAL']'''
 
-# labels to predict
-orig_y_labels = ['CARDIOVASCULAR DEATH (choice=cardiovascular death)', 'MI1 - Confirmed']
-
-
-desired_label_names = ['CVD', 'MI', 'CVD or MI']
 
 # create a matrix where each column describes an event, such as a requirement for a variable or how to handle missing
 # variables and rows describe the variables
@@ -66,19 +50,27 @@ data_handling = {
 
 feature_handling_frame = pd.DataFrame(data=data_handling, index=data_handling_functions)
 
-start_dates = ['CTA date']
-end_dates = ['EXITUS, end of follow-up (date)', 'EXITUS date', 'MI1 - Event date']
+CUSTOM_HANDLING = {
+    'diabetes': {
+        'missing': {'fill_val': 4},
+        'transform': {'combine': [(1, 2)],
+                      'missing': 0},
+    },
+    'Study indication': {
+        'require': {'one_of': [1, 2, 4, 5]}
+    },
+    'Chestpain': {
+        'missing': {'fill_val': 3}
+    },
+    'Smoking': {
+        'transform': {'combine': [(1, 3)],
+                      'missing': 0}
+    },
+    'index': {
+        'require': {'min_val': 862}
+    }
+}
 
-import datetime
-END_OF_FOLLOW_UP_DATE = datetime.date(2019, 12, 31)
+START_DATES = ['CTA date']
+END_DATES = ['EXITUS, end of follow-up (date)', 'EXITUS date', 'MI1 - Event date']
 
-#all features under the CTA category (add as needed)
-CTA_FEATURES = [n for n in csv_headers_original if 'type of stenosis' in n]
-
-#all features under the PET category (add as needed)
-PET_FEATURES = [n for n in csv_headers_original if 'STR_seg' in n]
-PET_FEATURES.extend([n for n in csv_headers_original if 'Stress ARVIO_' in n])
-
-
-if __name__ == "__main__":
-    print(feature_handling_frame)
