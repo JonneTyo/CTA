@@ -8,8 +8,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 import matplotlib.pyplot as plt
 
-#askldjfklöajsldfkjaösldjfas
-#alöskdjfölasjdöflas
+
 def cta_main(time_analysis=True, only_PET=False, data_name="cta_data.csv", label_name="cta_labels.csv", gen_SIS=False, gen_SSS=False,
              drop_CTA=False, drop_PET=False):
     ############################################################################################
