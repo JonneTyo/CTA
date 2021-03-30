@@ -21,7 +21,18 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="csv_pd.py" />
+    <Compile Include="cta_class.py" />
+    <Compile Include="CTA_main.py" />
+    <Compile Include="CTA_main_old.py" />
+    <Compile Include="cta_maths.py" />
+    <Compile Include="cta_plots.py" />
     <Compile Include="CTA_Projekti.py" />
+    <Compile Include="data_handler.py" />
+    <Compile Include="data_handler_old.py" />
+    <Compile Include="feature_data.py" />
+    <Compile Include="testi.py" />
+    <Compile Include="test_LM2.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
