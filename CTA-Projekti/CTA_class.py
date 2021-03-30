@@ -116,7 +116,7 @@ class CTAClass:
     def handle_transform(df, label, combine, missing=np.nan):
         n_max = len(combine)
         for i, vals in enumerate(combine):
-            df.loc[df.loc[:, label].isin(vals)] = i if i != missing else n_max
+            df.loc[df.loc[:, label].isin(vals), label] = i if i != missing else n_max
         return df
 
     def keep_pectus(self):
@@ -128,4 +128,5 @@ class CTAClass:
 # for testing purposes
 if __name__ == "__main__":
     cta_data = CTAClass(feature_data.CURRENT_DATA_FILE)
+    print('asdasda')
 
