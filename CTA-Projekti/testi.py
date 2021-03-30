@@ -1,6 +1,4 @@
-import numpy as np
+string1 = 'Date'
+string2 = 'DATE'
 
-my_dict = {'key1': 1,
-           'key2': 2}
-
-print(len(my_dict))
+print('date' in string1, 'date' in string2)
