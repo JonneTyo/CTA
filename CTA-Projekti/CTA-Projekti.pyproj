@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>19d33962-4d9d-4fa1-9774-9df96fc79c8e</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CTA_Projekti.py</StartupFile>
+    <StartupFile>CTA_class.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,11 +22,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="csv_pd.py" />
-    <Compile Include="cta_class.py" />
+    <Compile Include="CTA_class.py" />
     <Compile Include="CTA_main.py" />
     <Compile Include="CTA_main_old.py" />
-    <Compile Include="cta_maths.py" />
-    <Compile Include="cta_plots.py" />
+    <Compile Include="CTA_maths.py" />
+    <Compile Include="CTA_plots.py" />
     <Compile Include="CTA_Projekti.py" />
     <Compile Include="data_handler.py" />
     <Compile Include="data_handler_old.py" />

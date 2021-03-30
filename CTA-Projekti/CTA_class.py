@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from feature_data import *
-import cta_maths
+import CTA_maths
 import datetime
 
 
@@ -10,7 +10,7 @@ class CTAClass:
 
     def __init__(self, CTA_data_file_path):
         self.orig_path = CTA_data_file_path
-        self.data = csv_read(self.orig_path)
+        self.raw_data = csv_read(self.orig_path)
 
     @staticmethod
     def csv_read(file_path, index_col=0):
@@ -26,15 +26,15 @@ class CTAClass:
         return pd.read_csv('Processed_data.csv', encoding='utf-8', converters={'label': auto_truncate}, index_col=index_col)
 
     def to_numpy(self, **kwargs):
-        return self.data.to_numpy(**kwargs)
+        return self.raw_data.to_numpy(**kwargs)
 
     def str_to_num(self):
         pass
 
 # for testing purposes
 if __name__ == "__main__":
-    cta_data = CTAClass('CTArekisteri_DATA_LABELS_2021-02-17_1146.csv')
-    data_types = cta_data.data.dtypes
+    cta_data = CTAClass(CURRENT_DATA_FILE)
+    data_types = cta_data.raw_data.loc['Turku ID', :].dtypes
     print(data_types)
 
 

@@ -41,13 +41,6 @@ def cta_main(time_analysis=True, only_PET=False, data_name="cta_data.csv", label
     cta_data.columns = csv_headers_original
     cta_data.drop(labels=[str(n) for n in list(range(2, 861))], inplace=True)
 
-
-
-
-    # take only the desired rows
-    # cta_data = cta_data.loc[0:data_amount]
-    # cta_labels = cta_labels.loc[0:data_amount]
-
     # remove rows with all the values missing in the y_labels
     cta_data.dropna(how='all', subset=y_labels, inplace=True)
 

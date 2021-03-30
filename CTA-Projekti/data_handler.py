@@ -55,13 +55,11 @@ def data_parse_cols(df, mode='quantile', q=0.9, c=10, ignore_list=None):
 # attempts to turn str text in dataframe to numeric values
 def data_str_to_num(df, method, *args, **kwargs):
 
-    def wrapper_function(df, *args, **kwargs):
-        for row in df.index:
-            for col in df.columns:
-                if isinstance(df.at[row,col], str):
-                    df.at[row,col] = method(df.at[row,col],*args,**kwargs)
-        return df
-    return wrapper_function(df, *args, **kwargs)
+    for row in df.index:
+        for col in df.columns:
+            if isinstance(df.at[row,col], str):
+                df.at[row,col] = method(df.at[row,col],*args,**kwargs)
+    return df
 
 
 def data_remove_indices(correct_df, abundant_df):

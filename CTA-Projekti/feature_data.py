@@ -2,7 +2,8 @@ import pandas as pd
 from data_handler import csv_read
 import numpy as np
 
-CURRENT_DATA_FILE = 'CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
+DATA_DIR = 'Original data\\'
+CURRENT_DATA_FILE =  DATA_DIR + 'CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
 csv_headers_original = csv_read(CURRENT_DATA_FILE).columns
 field_types = ['perustiedot', 'cta', 'perfuusio', 'seuranta', 'laakitys', 'labrat_ennen', 'labrat_jalkeen', 'ttgene',
                'tutkimukset']
