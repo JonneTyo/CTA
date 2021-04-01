@@ -1,7 +1,7 @@
 import pandas as pd
 from data_handler import csv_read
 import datetime
-END_OF_FOLLOW_UP_DATE = datetime.date(2019, 12, 31)
+
 
 DATA_DIR = 'Original data\\'
 CURRENT_DATA_FILE =  DATA_DIR + 'CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
@@ -33,25 +33,6 @@ PECTUS_IDS = csv_read(DATA_DIR + 'PECTUS.csv').index
        'Calcium channel blocker', 'Antiarrhythmic drug', 'CTA_LOYD', 'Stress ARVIO_GLOBAL']'''
 
 
-# create a matrix where each column describes an event, such as a requirement for a variable or how to handle missing
-# variables and rows describe the variables
-# index 'transform' must be of form list > list > tuple/list and val
-# missing data doesn't need to be transformed to 0 as that is done later. If missing data should have value
-# other than 0 then do it here.
-data_handling_functions = ['req', 'between', 'missing', 'transform']
-data_handling = {
-
-    'diabetes': [None, None, 4, [[(1,2), 1], [None, 0]]],
-    'Study indication': [[1,2,4,5], None, None, None],
-    'Chestpain': [None, None, 3, [[[1], 1], [None, 0]]],
-    'MI1 - Confirmed': [None, None, 0, [[None, 0]]],
-    'Smoking': [None, None, 0, [[(1,3), 1], [None, 0]]],
-    'hypertension': [None, None, 0, [[[1], 1], [None, 0]]],
-    'dyslipidemia': [None, None, 0, [[[1], 1], [None, 0]]]
-}
-
-feature_handling_frame = pd.DataFrame(data=data_handling, index=data_handling_functions)
-
 CUSTOM_HANDLING = {
     'index': {
         'require': {'min_val': 862}
@@ -74,5 +55,6 @@ CUSTOM_HANDLING = {
 }
 
 START_DATES = ['CTA date']
-END_DATES = ['EXITUS, end of follow-up (date)', 'EXITUS date', 'MI1 - Event date']
+END_DATES = ['EXITUS date', 'Date of death']
+END_OF_FOLLOW_UP_DATE = datetime.date(2020, 12, 31)
 
