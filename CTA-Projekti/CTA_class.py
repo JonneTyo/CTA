@@ -5,16 +5,15 @@ import datetime
 import os
 
 
-
-
 class CTAClass:
 
-
-    DATA_DIR = os.getcwd() + '\\Original data'
+    DATA_DIR = os.getcwd() + '\\Data'
+    ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
+    PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
     RESULTS_DIR = os.getcwd() + '\\Results'
     PLOTS_DIR = os.getcwd() + '\\Plots'
-    CURRENT_DATA_FILE = DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
-    PECTUS_IDS = DATA_DIR + '\\PECTUS.csv'
+    CURRENT_DATA_FILE = ORIGINAL_DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
+    PECTUS_IDS = ORIGINAL_DATA_DIR + '\\PECTUS.csv'
     START_DATES = ['CTA date']
     END_DATES = ['EXITUS date', 'Date of death']
     END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
@@ -23,6 +22,12 @@ class CTAClass:
     RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
     CTA_VARIABLES, PET_VARIABLES = [], []
 
+    VARIABLES = {
+        'basic': BASIC_VARIABLES,
+        'risk': RISK_VARIABLES,
+        'cta': CTA_VARIABLES,
+        'pet': PET_VARIABLES
+    }
     CUSTOM_HANDLING = {
         'index': {
             'require': {'min_val': 862}
@@ -44,7 +49,7 @@ class CTAClass:
         }
     }
 
-    REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR]
+    REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
 
     def __init__(self, CTA_data_file_path):
         self.orig_path = CTA_data_file_path
@@ -121,6 +126,7 @@ class CTAClass:
             return df.fillna(value=fill_val)
         else:
             df.loc[:, label] = df.loc[:, label].fillna(value=fill_val)
+            df.loc[:, label].loc[df[label] == -1] = fill_val
             return df
 
     @staticmethod
@@ -220,5 +226,4 @@ for dir in CTAClass.REQ_DIRS:
 # for testing purposes
 if __name__ == "__main__":
     cta_data = CTAClass(CTAClass.CURRENT_DATA_FILE)
-    print(cta_data)
 
