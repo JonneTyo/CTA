@@ -4,30 +4,32 @@ import CTA_maths
 import datetime
 import os
 
+DATA_DIR = os.getcwd() + '\\Data'
+ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
+PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
+RESULTS_DIR = os.getcwd() + '\\Results'
+PLOTS_DIR = os.getcwd() + '\\Plots'
+CURRENT_DATA_FILE = ORIGINAL_DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
+PECTUS_IDS = ORIGINAL_DATA_DIR + '\\PECTUS.csv'
+START_DATES = ['CTA date']
+END_DATES = ['EXITUS date', 'Date of death']
+END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
+MAX_CATEGORICAL_VALUE = 20
+BASIC_VARIABLES = ['sex', 'age']
+RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
+CTA_VARIABLES, PET_VARIABLES = [], []
+VARIABLES = {
+    'basic': BASIC_VARIABLES,
+    'risk': RISK_VARIABLES,
+    'cta': CTA_VARIABLES,
+    'pet': PET_VARIABLES
+}
+LABELS = [] #todo, all-cause mortality, UAP, MI
 
-class CTAClass:
+REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
 
-    DATA_DIR = os.getcwd() + '\\Data'
-    ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
-    PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
-    RESULTS_DIR = os.getcwd() + '\\Results'
-    PLOTS_DIR = os.getcwd() + '\\Plots'
-    CURRENT_DATA_FILE = ORIGINAL_DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
-    PECTUS_IDS = ORIGINAL_DATA_DIR + '\\PECTUS.csv'
-    START_DATES = ['CTA date']
-    END_DATES = ['EXITUS date', 'Date of death']
-    END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
-    MAX_CATEGORICAL_VALUE = 20
-    BASIC_VARIABLES = ['sex', 'age']
-    RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-    CTA_VARIABLES, PET_VARIABLES = [], []
 
-    VARIABLES = {
-        'basic': BASIC_VARIABLES,
-        'risk': RISK_VARIABLES,
-        'cta': CTA_VARIABLES,
-        'pet': PET_VARIABLES
-    }
+class CTA_data_formatter:
     CUSTOM_HANDLING = {
         'index': {
             'require': {'min_val': 862}
@@ -49,14 +51,14 @@ class CTAClass:
         }
     }
 
-    REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
-
     def __init__(self, CTA_data_file_path):
         self.orig_path = CTA_data_file_path
-        self.raw_data = CTAClass.csv_read(self.orig_path)
-        CTAClass.CTA_VARIABLES, CTAClass.PET_VARIABLES = self.get_cta_and_pet_variables()
-        self.data = CTAClass.convert_dtypes(self.raw_data)
-        self.handle_special_cases(**CTAClass.CUSTOM_HANDLING)
+        self.raw_data = CTA_data_formatter.csv_read(self.orig_path)
+        global CTA_VARIABLES
+        global PET_VARIABLES
+        CTA_VARIABLES, PET_VARIABLES = self.get_cta_and_pet_variables()
+        self.data = CTA_data_formatter.convert_dtypes(self.raw_data)
+        self.handle_special_cases(**CTA_data_formatter.CUSTOM_HANDLING)
         self.keep_pectus()
         self.calculate_passed_time()
 
@@ -69,7 +71,7 @@ class CTAClass:
             codes, uniques = column.factorize()
 
             # check if label is categorical
-            if len(uniques) <= CTAClass.MAX_CATEGORICAL_VALUE + 1:
+            if len(uniques) <= MAX_CATEGORICAL_VALUE + 1:
                 to_return.loc[:, label] = codes
                 continue
 
@@ -107,15 +109,15 @@ class CTAClass:
                 f.write(s)
         return pd.read_csv('Processed_data.csv', encoding='utf-8', converters={0: remove_N}, index_col=index_col)
 
-    def to_numpy(self, **kwargs):
-        return self.data.to_numpy(**kwargs)
+    def to_csv(self, file_path=PROCESSED_DATA_DIR + '\\Processed data.csv'):
+        self.data.to_csv(file_path)
 
     # implements the changes to the data specified in CUSTOM_HANDLING
     def handle_special_cases(self, **kwargs):
         df = self.data
         for label, funcs in kwargs.items():
             for func_name, func_args in funcs.items():
-                func = getattr(CTAClass, f'handle_{func_name}')
+                func = getattr(CTA_data_formatter, f'handle_{func_name}')
                 df = func(df, label, **func_args)
         self.data = df
         pass
@@ -164,7 +166,7 @@ class CTAClass:
         return df
 
     def keep_pectus(self):
-        pectus = CTAClass.csv_read(CTAClass.PECTUS_IDS)
+        pectus = CTA_data_formatter.csv_read(PECTUS_IDS)
         filter1 = self.data.loc[:, 'Study indication'] == 11
         filter2 = self.data.index.isin(pectus)
         self.data = self.data.loc[~(filter1 & filter2)]
@@ -174,12 +176,12 @@ class CTAClass:
     def calculate_passed_time(self):
 
         # get the earliest date of start dates and latest date of end dates
-        end_date = self.data.loc[:, CTAClass.END_DATES]
+        end_date = self.data.loc[:, END_DATES]
         if end_date.shape[1] > 1:
             end_date = end_date.max(axis=1)
         else:
             end_date = end_date.squeeze()
-        start_date = self.data.loc[:, CTAClass.START_DATES]
+        start_date = self.data.loc[:, START_DATES]
         if start_date.shape[1] > 1:
             start_date = start_date.min(axis=1)
         else:
@@ -192,15 +194,12 @@ class CTAClass:
         start_date.dropna(inplace=True)
 
         # fill the missing values in end_date with a pre-determined value
-        end_date.fillna(CTAClass.END_OF_FOLLOW_UP_DATE, inplace=True)
+        end_date.fillna(END_OF_FOLLOW_UP_DATE, inplace=True)
 
         # calculate values in days
         vals = (end_date - start_date).array.days
 
         self.data['Passed time'] = vals
-        print(self.data['Passed time'])
-
-
         pass
 
     def get_cta_and_pet_variables(self):
@@ -215,8 +214,17 @@ class CTAClass:
         return to_return_cta, to_return_pet
 
 
+class CTA_class:
+
+    def __init__(self, combine_labels=True):
+        self.original_data = pd.read_csv(PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
+        self.combine_labels = combine_labels
+
+
+
+
 # create required directories if they do not exist
-for dir in CTAClass.REQ_DIRS:
+for dir in REQ_DIRS:
     try:
         os.mkdir(dir)
         print('Created directory: ' + dir)
@@ -225,5 +233,15 @@ for dir in CTAClass.REQ_DIRS:
 
 # for testing purposes
 if __name__ == "__main__":
-    cta_data = CTAClass(CTAClass.CURRENT_DATA_FILE)
 
+    format_original_data = True
+
+    if format_original_data:
+        cta_data = CTA_data_formatter(CURRENT_DATA_FILE)
+        cta_data.to_csv()
+
+    cta_data = CTA_class()
+    print(cta_data.original_data)
+
+
+    # todo y_labels, new class for the x_labels
