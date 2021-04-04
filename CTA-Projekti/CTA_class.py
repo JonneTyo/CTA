@@ -15,19 +15,38 @@ START_DATES = ['CTA date']
 END_DATES = ['EXITUS date', 'Date of death']
 END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
 MAX_CATEGORICAL_VALUE = 20
+N_STENOSIS_TYPES = 7
 BASIC_VARIABLES = ['sex', 'age']
 RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-CTA_VARIABLES, PET_VARIABLES = [], []
+CTA_VARIABLES, PET_VARIABLES = [f'Stenosis type {n} count' for n in range(N_STENOSIS_TYPES)], []
 VARIABLES = {
     'basic': BASIC_VARIABLES,
     'risk': RISK_VARIABLES,
     'cta': CTA_VARIABLES,
     'pet': PET_VARIABLES
 }
+
 LABELS = [] #todo, all-cause mortality, UAP, MI
 
 REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
 
+
+
+def print_change_in_patients(f):
+    def wrapper_func(df, *args, **kwargs):
+        if isinstance(df, (CTA_data_formatter, CTA_class)):
+            temp = df.data
+        else:
+            temp = df
+        rows, columns = temp.shape
+        rv = f(df, *args, **kwargs)
+        if isinstance(df, (CTA_data_formatter, CTA_class)):
+            rows_new, columns_new = df.data.shape
+        else:
+            rows_new, columns_new = df.shape
+        print(f'Function {f.__name__} caused a change of {rows_new - rows} patients and {columns_new - columns} variables \n')
+        return rv
+    return wrapper_func
 
 class CTA_data_formatter:
     CUSTOM_HANDLING = {
@@ -61,9 +80,11 @@ class CTA_data_formatter:
         self.handle_special_cases(**CTA_data_formatter.CUSTOM_HANDLING)
         self.keep_pectus()
         self.calculate_passed_time()
+        self.count_stenosis_types()
 
     # returns a dataframe where each column has been converted to the best possible datatype
     @staticmethod
+    @print_change_in_patients
     def convert_dtypes(df):
         to_return = df.copy()
         for label, column in to_return.items():
@@ -84,7 +105,7 @@ class CTA_data_formatter:
                     pass
 
             # attempt to convert the data to best suitable datatype. If that datatype is an object or a string, drop the label
-            temp = column.convert_dtypes()
+            temp = column.convert_dtypes(convert_integer=True)
             temp_type = str(temp.dtype)
             if temp_type not in ('object', 'string'):
                 to_return.loc[:, label] = temp
@@ -113,6 +134,7 @@ class CTA_data_formatter:
         self.data.to_csv(file_path)
 
     # implements the changes to the data specified in CUSTOM_HANDLING
+    @print_change_in_patients
     def handle_special_cases(self, **kwargs):
         df = self.data
         for label, funcs in kwargs.items():
@@ -165,6 +187,7 @@ class CTA_data_formatter:
             df.loc[df.loc[:, label].isin(vals), label] = i if i != missing else n_max
         return df
 
+    @print_change_in_patients
     def keep_pectus(self):
         pectus = CTA_data_formatter.csv_read(PECTUS_IDS)
         filter1 = self.data.loc[:, 'Study indication'] == 11
@@ -173,6 +196,7 @@ class CTA_data_formatter:
         pass
 
     # calculates the time difference from start dates to end dates in days and saves it to a variable "passed time"
+    @print_change_in_patients
     def calculate_passed_time(self):
 
         # get the earliest date of start dates and latest date of end dates
@@ -202,6 +226,54 @@ class CTA_data_formatter:
         self.data['Passed time'] = vals
         pass
 
+    # for each patient sums up the occurrence of each type of stenosis and stores them into self.data
+    @print_change_in_patients
+    def count_stenosis_types(self, n_classes=N_STENOSIS_TYPES):
+
+        new_c_names = [f'Stenosis type {n} count' for n in range(n_classes)]
+
+        # find the "type of stenosis" variables in the data
+
+        first_type_name = None
+        last_type_name = None
+        previous_name = None
+
+        for var_name in self.data.columns:
+            if "type of stenosis" in var_name:
+                if first_type_name is None:
+                    first_type_name = var_name
+                else:
+                    previous_name = var_name
+            elif first_type_name is not None:
+                last_type_name = previous_name
+                break
+        if last_type_name is None:
+            last_type_name = previous_name
+
+        stenosis_data = self.data.loc[:, [n for n in self.data.columns if 'type of stenosis' in n.lower()]]
+
+        def countif(values, i):
+            count = 0
+            if i != 0:
+                for val in values:
+                    if pd.isnull(val):
+                        continue
+                    if val == i:
+                        count += 1
+            else:
+                for val in values:
+                    if pd.isnull(val):
+                        count += 1
+            return count
+
+        count_vals = dict()
+        for i in range(n_classes):
+            if i > 0:
+                count_vals[new_c_names[i]] = stenosis_data.apply(lambda x: countif(x, i), axis=1)
+                self.data[new_c_names[i]] = count_vals[new_c_names[i]]
+
+        pass
+
     def get_cta_and_pet_variables(self):
         to_return_cta = list()
         to_return_pet = list()
@@ -218,9 +290,8 @@ class CTA_class:
 
     def __init__(self, combine_labels=True):
         self.original_data = pd.read_csv(PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
+        self.original_data = self.original_data.convert_dtypes()
         self.combine_labels = combine_labels
-
-
 
 
 # create required directories if they do not exist
