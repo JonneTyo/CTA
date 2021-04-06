@@ -4,34 +4,8 @@ import CTA_maths
 import datetime
 import os
 
-DATA_DIR = os.getcwd() + '\\Data'
-ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
-PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
-RESULTS_DIR = os.getcwd() + '\\Results'
-PLOTS_DIR = os.getcwd() + '\\Plots'
-CURRENT_DATA_FILE = ORIGINAL_DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
-PECTUS_IDS = ORIGINAL_DATA_DIR + '\\PECTUS.csv'
-START_DATES = ['CTA date']
-END_DATES = ['EXITUS date', 'Date of death']
-END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
-MAX_CATEGORICAL_VALUE = 20
-N_STENOSIS_TYPES = 7
-BASIC_VARIABLES = ['sex', 'age']
-RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-CTA_VARIABLES, PET_VARIABLES = [f'Stenosis type {n} count' for n in range(N_STENOSIS_TYPES)], []
-VARIABLES = {
-    'basic': BASIC_VARIABLES,
-    'risk': RISK_VARIABLES,
-    'cta': CTA_VARIABLES,
-    'pet': PET_VARIABLES
-}
 
-LABELS = [] #todo, all-cause mortality, UAP, MI
-
-REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
-
-
-
+# decorator which prints the change in the number of rows and columns the given function does
 def print_change_in_patients(f):
     def wrapper_func(df, *args, **kwargs):
         if isinstance(df, (CTA_data_formatter, CTA_class)):
@@ -48,7 +22,29 @@ def print_change_in_patients(f):
         return rv
     return wrapper_func
 
+
 class CTA_data_formatter:
+
+    DATA_DIR = os.getcwd() + '\\Data'
+    ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
+    PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
+    RESULTS_DIR = os.getcwd() + '\\Results'
+    PLOTS_DIR = os.getcwd() + '\\Plots'
+    CURRENT_DATA_FILE = ORIGINAL_DATA_DIR + '\\CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
+    PECTUS_IDS = ORIGINAL_DATA_DIR + '\\PECTUS.csv'
+    START_DATES = ['cta date']
+    END_DATES = ['exitus date', 'date of death']
+    END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
+    MAX_CATEGORICAL_VALUE = 20
+    N_STENOSIS_TYPES = 7
+    BASIC_VARIABLES = ['sex', 'age', 'passed time']
+    RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
+    CTA_VARIABLES, PET_VARIABLES = [f'stenosis type {n} count' for n in range(N_STENOSIS_TYPES)], []
+
+    LABELS = ['uap1 - confirmed', 'mi1 - confirmed', 'date of death']
+    TIME_RESTRICTION = 4*365
+
+    REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
     CUSTOM_HANDLING = {
         'index': {
             'require': {'min_val': 862}
@@ -58,29 +54,33 @@ class CTA_data_formatter:
             'transform': {'combine': [(1, 2)],
                           'missing': 0},
         },
-        'Study indication': {
+        'study indication': {
             'require': {'one_of': [1, 2, 4, 5, 11]}
         },
-        'Chestpain': {
+        'chestpain': {
             'missing': {'fill_val': 3}
         },
-        'Smoking': {
+        'smoking': {
             'transform': {'combine': [(1, 3)],
                           'missing': 0}
         }
     }
 
-    def __init__(self, CTA_data_file_path):
+    def __init__(self, CTA_data_file_path, b_combine_labels=True):
         self.orig_path = CTA_data_file_path
         self.raw_data = CTA_data_formatter.csv_read(self.orig_path)
-        global CTA_VARIABLES
-        global PET_VARIABLES
-        CTA_VARIABLES, PET_VARIABLES = self.get_cta_and_pet_variables()
+        self.b_combine_labels = b_combine_labels
+        CTA_data_formatter.CTA_VARIABLES, CTA_data_formatter.PET_VARIABLES = self.get_cta_and_pet_variables()
         self.data = CTA_data_formatter.convert_dtypes(self.raw_data)
+        self.data.columns = self.columns
         self.handle_special_cases(**CTA_data_formatter.CUSTOM_HANDLING)
         self.keep_pectus()
         self.calculate_passed_time()
         self.count_stenosis_types()
+        self.drop_columns()
+        if b_combine_labels:
+            self.combine_labels()
+        self.create_time_restricted_labels()
 
     # returns a dataframe where each column has been converted to the best possible datatype
     @staticmethod
@@ -92,7 +92,7 @@ class CTA_data_formatter:
             codes, uniques = column.factorize()
 
             # check if label is categorical
-            if len(uniques) <= MAX_CATEGORICAL_VALUE + 1:
+            if len(uniques) <= CTA_data_formatter.MAX_CATEGORICAL_VALUE + 1:
                 to_return.loc[:, label] = codes
                 continue
 
@@ -189,8 +189,8 @@ class CTA_data_formatter:
 
     @print_change_in_patients
     def keep_pectus(self):
-        pectus = CTA_data_formatter.csv_read(PECTUS_IDS)
-        filter1 = self.data.loc[:, 'Study indication'] == 11
+        pectus = CTA_data_formatter.csv_read(CTA_data_formatter.PECTUS_IDS)
+        filter1 = self.data.loc[:, 'study indication'] == 11
         filter2 = self.data.index.isin(pectus)
         self.data = self.data.loc[~(filter1 & filter2)]
         pass
@@ -200,12 +200,12 @@ class CTA_data_formatter:
     def calculate_passed_time(self):
 
         # get the earliest date of start dates and latest date of end dates
-        end_date = self.data.loc[:, END_DATES]
+        end_date = self.data.loc[:, CTA_data_formatter.END_DATES]
         if end_date.shape[1] > 1:
             end_date = end_date.max(axis=1)
         else:
             end_date = end_date.squeeze()
-        start_date = self.data.loc[:, START_DATES]
+        start_date = self.data.loc[:, CTA_data_formatter.START_DATES]
         if start_date.shape[1] > 1:
             start_date = start_date.min(axis=1)
         else:
@@ -218,43 +218,25 @@ class CTA_data_formatter:
         start_date.dropna(inplace=True)
 
         # fill the missing values in end_date with a pre-determined value
-        end_date.fillna(END_OF_FOLLOW_UP_DATE, inplace=True)
+        end_date.fillna(CTA_data_formatter.END_OF_FOLLOW_UP_DATE, inplace=True)
 
         # calculate values in days
         vals = (end_date - start_date).array.days
 
-        self.data['Passed time'] = vals
+        self.data['passed time'] = vals
         pass
 
     # for each patient sums up the occurrence of each type of stenosis and stores them into self.data
     @print_change_in_patients
     def count_stenosis_types(self, n_classes=N_STENOSIS_TYPES):
 
-        new_c_names = [f'Stenosis type {n} count' for n in range(n_classes)]
-
-        # find the "type of stenosis" variables in the data
-
-        first_type_name = None
-        last_type_name = None
-        previous_name = None
-
-        for var_name in self.data.columns:
-            if "type of stenosis" in var_name:
-                if first_type_name is None:
-                    first_type_name = var_name
-                else:
-                    previous_name = var_name
-            elif first_type_name is not None:
-                last_type_name = previous_name
-                break
-        if last_type_name is None:
-            last_type_name = previous_name
+        new_c_names = [f'stenosis type {n + 1} count' for n in range(-1, n_classes-1)]
 
         stenosis_data = self.data.loc[:, [n for n in self.data.columns if 'type of stenosis' in n.lower()]]
 
         def countif(values, i):
             count = 0
-            if i != 0:
+            if i != -1:
                 for val in values:
                     if pd.isnull(val):
                         continue
@@ -269,7 +251,7 @@ class CTA_data_formatter:
         count_vals = dict()
         for i in range(n_classes):
             if i > 0:
-                count_vals[new_c_names[i]] = stenosis_data.apply(lambda x: countif(x, i), axis=1)
+                count_vals[new_c_names[i]] = stenosis_data.apply(lambda x: countif(x, i-1), axis=1)
                 self.data[new_c_names[i]] = count_vals[new_c_names[i]]
 
         pass
@@ -277,25 +259,86 @@ class CTA_data_formatter:
     def get_cta_and_pet_variables(self):
         to_return_cta = list()
         to_return_pet = list()
-        for ind in self.raw_data.index:
-            if 'type of stenosis' in str(ind).lower():
-                to_return_cta.append(ind)
-            elif 'str_seg' in str(ind).lower():
-                to_return_pet.append(ind)
+        for col in self.raw_data.columns:
+            if 'type of stenosis' in str(col).lower():
+                to_return_cta.append(col.lower())
+            elif 'str_seg' in str(col).lower():
+                to_return_pet.append(col.lower())
 
         return to_return_cta, to_return_pet
+
+    @print_change_in_patients
+    def drop_columns(self):
+        all_vars = []
+        for key, item in self.all_variables.items():
+            for i in item:
+                all_vars.append(i.lower())
+        for col in self.columns:
+            if col in all_vars or col in CTA_data_formatter.LABELS:
+                continue
+            self.data.drop(labels=col, axis=1, inplace=True)
+        pass
+
+    @property
+    def columns(self):
+        for i in self.data.columns:
+            yield i.lower()
+        pass
+
+    @property
+    def original_columns(self):
+        for i in self.raw_data.columns:
+            yield i
+        pass
+
+    @property
+    def all_variables(self):
+        to_return = {
+            'cta': CTA_data_formatter.CTA_VARIABLES,
+            'pet': CTA_data_formatter.PET_VARIABLES,
+            'basic': CTA_data_formatter.BASIC_VARIABLES,
+            'risk': CTA_data_formatter.RISK_VARIABLES
+        }
+        return to_return
+
+    def combine_labels(self):
+
+        df = self.data.loc[:, CTA_data_formatter.LABELS]
+
+        for i, dt in enumerate(df.dtypes):
+            if 'int' not in str(dt).lower():
+                df.iloc[:, i] = df.iloc[:, i].notna().astype(int)
+        new_df = df.max(axis=1)
+        self.data['event'] = new_df
+        self.data.drop(labels=CTA_data_formatter.LABELS, axis=1, inplace=True)
+        pass
+
+    def create_time_restricted_labels(self, min_d=0, max_d=TIME_RESTRICTION):
+        new_vals = list()
+        for ind, row in self.data.iterrows():
+            if row['event'] != 1:
+                new_vals.append(0)
+                continue
+            if min_d <= row['passed time'] and row['passed time'] <= max_d:
+                new_vals.append(1)
+            else:
+                new_vals.append(0)
+
+        self.data['timed event'] = new_vals
+        pass
+
 
 
 class CTA_class:
 
     def __init__(self, combine_labels=True):
-        self.original_data = pd.read_csv(PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
+        self.original_data = pd.read_csv(CTA_data_formatter.PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
         self.original_data = self.original_data.convert_dtypes()
         self.combine_labels = combine_labels
 
 
 # create required directories if they do not exist
-for dir in REQ_DIRS:
+for dir in CTA_data_formatter.REQ_DIRS:
     try:
         os.mkdir(dir)
         print('Created directory: ' + dir)
@@ -308,7 +351,7 @@ if __name__ == "__main__":
     format_original_data = True
 
     if format_original_data:
-        cta_data = CTA_data_formatter(CURRENT_DATA_FILE)
+        cta_data = CTA_data_formatter(CTA_data_formatter.CURRENT_DATA_FILE)
         cta_data.to_csv()
 
     cta_data = CTA_class()
