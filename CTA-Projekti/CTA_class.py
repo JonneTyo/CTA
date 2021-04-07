@@ -39,7 +39,16 @@ class CTA_data_formatter:
     N_STENOSIS_TYPES = 7
     BASIC_VARIABLES = ['sex', 'age', 'passed time']
     RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-    CTA_VARIABLES, PET_VARIABLES = [f'stenosis type {n} count' for n in range(N_STENOSIS_TYPES)], []
+    CTA_VARIABLES = ['stenosis type 1 count', 'stenosis type 2 count', 'stenosis type 3 count',
+                     'stenosis type 4 count', 'stenosis type 5 count', 'stenosis type 6 count',
+                     'lm - type of stenosis', 'lada - type of stenosis', 'ladb - type of stenosis',
+                     'ladc - type of stenosis', 'd1 - type of stenosis', 'd2 - type of stenosis',
+                     'lcxa - type of stenosis', 'lcxb - type of stenosis', 'lcxc -type of stenosis',
+                     'lpd - type of stenosis', 'lom1 - type of stenosis', 'lom2 - type of stenosis',
+                     'im - type of stenosis', 'lpl - type of stenosis', 'rcaa - type of stenosis',
+                     'rcab - type of stenosis', 'rcac - type of stenosis', 'rpd - type of stenosis',
+                     'rpl - type of stenosis']
+    PET_VARIABLES = [f'str_seg_{n}' for n in range(1, 18)]
 
     LABELS = ['uap1 - confirmed', 'mi1 - confirmed', 'date of death']
     TIME_RESTRICTION = 4*365
@@ -70,7 +79,6 @@ class CTA_data_formatter:
         self.orig_path = CTA_data_file_path
         self.raw_data = CTA_data_formatter.csv_read(self.orig_path)
         self.b_combine_labels = b_combine_labels
-        CTA_data_formatter.CTA_VARIABLES, CTA_data_formatter.PET_VARIABLES = self.get_cta_and_pet_variables()
         self.data = CTA_data_formatter.convert_dtypes(self.raw_data)
         self.data.columns = self.columns
         self.handle_special_cases(**CTA_data_formatter.CUSTOM_HANDLING)
@@ -81,6 +89,7 @@ class CTA_data_formatter:
         if b_combine_labels:
             self.combine_labels()
         self.create_time_restricted_labels()
+        self.remove_bad_patients()
 
     # returns a dataframe where each column has been converted to the best possible datatype
     @staticmethod
@@ -257,8 +266,8 @@ class CTA_data_formatter:
         pass
 
     def get_cta_and_pet_variables(self):
-        to_return_cta = list()
-        to_return_pet = list()
+        to_return_cta = CTA_data_formatter.CTA_VARIABLES
+        to_return_pet = CTA_data_formatter.PET_VARIABLES
         for col in self.raw_data.columns:
             if 'type of stenosis' in str(col).lower():
                 to_return_cta.append(col.lower())
@@ -319,7 +328,7 @@ class CTA_data_formatter:
             if row['event'] != 1:
                 new_vals.append(0)
                 continue
-            if min_d <= row['passed time'] and row['passed time'] <= max_d:
+            if min_d <= row['passed time'] <= max_d:
                 new_vals.append(1)
             else:
                 new_vals.append(0)
@@ -327,35 +336,102 @@ class CTA_data_formatter:
         self.data['timed event'] = new_vals
         pass
 
+    @print_change_in_patients
+    def remove_bad_patients(self, ratio_breakpoint=2/3):
+        variables_to_inspect = CTA_data_formatter.BASIC_VARIABLES
+        variables_to_inspect.extend(CTA_data_formatter.RISK_VARIABLES)
+        variables_to_inspect.extend(CTA_data_formatter.CTA_VARIABLES)
 
+        for val in range(1, CTA_data_formatter.N_STENOSIS_TYPES):
+            variables_to_inspect.remove(f'stenosis type {val} count')
+        variables_to_inspect.remove('passed time')
+
+        n_variables = len(variables_to_inspect)
+        to_drop = list()
+        for index, row in self.data.loc[:, variables_to_inspect].iterrows():
+            n_na = abs(row[row == -1].sum())
+            if n_na >= n_variables*ratio_breakpoint:
+                to_drop.append(index)
+        self.data.drop(labels=to_drop, axis=0, inplace=True)
 
 class CTA_class:
 
-    def __init__(self, combine_labels=True):
+    n_iterations = 100
+    models = ['lasso', 'SVC', 'linreg']
+
+    def __init__(self, only_pet=False, keep_cta=True, keep_pet=True, timed=False):
         self.original_data = pd.read_csv(CTA_data_formatter.PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
         self.original_data = self.original_data.convert_dtypes()
-        self.combine_labels = combine_labels
+        self.only_pet = only_pet
+        self.keep_cta = keep_cta
+        self.keep_pet = keep_pet
+        self.timed = timed
+
+    @property
+    def data(self):
+        df = self.original_data.copy()
+        if self.only_pet:
+            df.dropna(how='all', subset=[f'str_seg_{n + 1}' for n in range(17)], inplace=True)
+        if not self.keep_cta:
+            df.drop(labels=CTA_data_formatter.CTA_VARIABLES, axis=1, inplace=True)
+        if not self.keep_pet:
+            df.drop(labels=CTA_data_formatter.PET_VARIABLES, axis=1, inplace=True)
+        if self.timed:
+            df.drop(columns='event', inplace=True)
+        else:
+            df.drop(columns='timed event', inplace=True)
+
+        return df
 
 
 # create required directories if they do not exist
-for dir in CTA_data_formatter.REQ_DIRS:
+for val in CTA_data_formatter.REQ_DIRS:
     try:
-        os.mkdir(dir)
-        print('Created directory: ' + dir)
+        os.mkdir(val)
+        print('Created directory: ' + val)
     except OSError:
         pass
 
-# for testing purposes
+
+# iterate through all desired dataset settings
+def iter_options(settings, n_start=0):
+
+    n_options = 2**len(settings)
+    for i in range(n_start, n_options):
+        b_str = bin(i)[2:]
+
+        # pad the beginning of b_str with zeroes if needed
+        if len(b_str) < len(settings):
+            pad = len(settings) - len(b_str)
+            for j in range(pad):
+                b_str = '0' + b_str
+
+        for j, (key, item) in zip(b_str, settings.items()):
+            settings[key] = bool(int(j))
+
+        if (not settings['keep_cta']) and settings['keep_pet']:
+            continue
+        yield settings
+
+
 if __name__ == "__main__":
 
-    format_original_data = True
+    format_original_data = False
+    iterate_all_options = True
+    iteration_start = 0
+
+    settings = {
+        'only_pet': False,
+        'timed': False,
+        'keep_cta': False,
+        'keep_pet': False,
+    }
 
     if format_original_data:
         cta_data = CTA_data_formatter(CTA_data_formatter.CURRENT_DATA_FILE)
         cta_data.to_csv()
 
-    cta_data = CTA_class()
-    print(cta_data.original_data)
-
-
-    # todo y_labels, new class for the x_labels
+    for opt in iter_options(settings, iteration_start):
+        cta_data = CTA_class(**opt)
+        all_data = cta_data.data
+        print('all_data')
