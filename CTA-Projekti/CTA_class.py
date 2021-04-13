@@ -3,6 +3,8 @@ import pandas as pd
 import CTA_maths
 import datetime
 import os
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
 
 
 # decorator which prints the change in the number of rows and columns the given function does
@@ -90,6 +92,7 @@ class CTA_data_formatter:
             self.combine_labels()
         self.create_time_restricted_labels()
         self.remove_bad_patients()
+        self.fill_nas()
 
     # returns a dataframe where each column has been converted to the best possible datatype
     @staticmethod
@@ -117,6 +120,7 @@ class CTA_data_formatter:
             temp = column.convert_dtypes(convert_integer=True)
             temp_type = str(temp.dtype)
             if temp_type not in ('object', 'string'):
+                temp.fillna(value=-1, inplace=True)
                 to_return.loc[:, label] = temp
             else:
                 to_return.drop(labels=label, axis=1, inplace=True)
@@ -353,11 +357,17 @@ class CTA_data_formatter:
             if n_na >= n_variables*ratio_breakpoint:
                 to_drop.append(index)
         self.data.drop(labels=to_drop, axis=0, inplace=True)
+        pass
+
+    def fill_nas(self, fill_val=0):
+        self.data.fillna(value=fill_val)
+        pass
 
 class CTA_class:
 
-    n_iterations = 100
-    models = ['lasso', 'SVC', 'linreg']
+    N_ITERATIONS = 100
+    MODELS = ['lasso', 'SVC', 'linreg']
+    METRICS = {'test_auc': 'Test AUC', 'sens': 'Sensitivity', 'spec': 'Specificity', 'accuracy': 'Accuracy'}
 
     def __init__(self, only_pet=False, keep_cta=True, keep_pet=True, timed=False):
         self.original_data = pd.read_csv(CTA_data_formatter.PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0)
@@ -366,6 +376,32 @@ class CTA_class:
         self.keep_cta = keep_cta
         self.keep_pet = keep_pet
         self.timed = timed
+        self.settings = {'only_pet': only_pet,
+                         'keep_cta': keep_cta,
+                         'keep_pet': keep_pet,
+                         'timed': timed}
+        self.label = 'event' if timed else 'timed event'
+        self.models = {i: j for (i, j) in zip(CTA_class.MODELS, [getattr(CTA_maths, f'maths_{n}_model')() for n in CTA_class.MODELS])}
+        self.X_train, self.X_test, self.y_train, self.y_test = self.cta_train_test_split(self.labels)
+        self.model_predictions = dict()
+
+    def __call__(self, write_to_csv=True):
+
+        df = None
+        for n in range(CTA_class.N_ITERATIONS):
+            print(f'Iteration {n} out of {CTA_class.N_ITERATIONS}')
+            self.X_train, self.X_test, self.y_train, self.y_test = self.cta_train_test_split(self.labels)
+            self.train_models()
+            self.predict(self.X_test)
+            if df is None:
+                df = self.results
+            else:
+                df += self.results
+
+        df = df/CTA_class.N_ITERATIONS
+        if write_to_csv:
+            df.to_csv(CTA_data_formatter.RESULTS_DIR + f'\\results_{self.settings_to_str}.csv')
+        return df
 
     @property
     def data(self):
@@ -376,12 +412,118 @@ class CTA_class:
             df.drop(labels=CTA_data_formatter.CTA_VARIABLES, axis=1, inplace=True)
         if not self.keep_pet:
             df.drop(labels=CTA_data_formatter.PET_VARIABLES, axis=1, inplace=True)
-        if self.timed:
-            df.drop(columns='event', inplace=True)
-        else:
-            df.drop(columns='timed event', inplace=True)
 
+        df.drop(columns='passed time', inplace=True)
+        df.drop(labels=['event', 'timed event'], axis=1, inplace=True)
         return df
+
+    @property
+    def labels(self):
+        return self.original_data.loc[self.data.index, self.label]
+
+    @property
+    def metric_names(self):
+        return [n for n in CTA_class.METRICS.values()]
+
+    @property
+    def settings_to_str(self):
+        to_return = ''
+        for key, val in self.settings.items():
+            if val:
+                to_return += '_' + key
+        return to_return
+
+    def to_numpy(self):
+        return self.data.to_numpy()
+
+    # splits the data into training and testing portions so that the ratio of positive events stays the same in both
+    def cta_train_test_split(self, labels, train_ratio=3 / 4, random_state=None):
+        data = self.data
+        from sklearn.model_selection import train_test_split
+        if random_state is None:
+            random_state = datetime.datetime.now().microsecond % 1000
+        pos_filter, neg_filter = labels > 0, labels <= 0
+        pos_d, pos_l, neg_d, neg_l = data[pos_filter], labels[pos_filter], data[neg_filter], labels[neg_filter]
+
+        x_train1, x_test1, y_train1, y_test1 = train_test_split(pos_d, pos_l, train_size=train_ratio, random_state=random_state)
+        x_train2, x_test2, y_train2, y_test2 = train_test_split(neg_d, neg_l, train_size=train_ratio, random_state=random_state)
+        x_train1 = np.append(x_train1, x_train2, axis=0)
+        x_test1 = np.append(x_test1, x_test2, axis=0)
+        y_train1 = np.append(y_train1.to_frame(), y_train2.to_frame(), axis=0)
+        y_test1 = np.append(y_test1.to_frame(), y_test2.to_frame(), axis=0)
+        x_train1 = np.append(x_train1, y_train1, axis=1)
+        x_test1 = np.append(x_test1, y_test1, axis=1)
+        np.random.shuffle(x_train1)
+        np.random.shuffle(x_test1)
+        x_train1 = x_train1.astype(float)
+        x_test1 = x_test1.astype(float)
+
+        return x_train1[:, :-y_train1.shape[1]], x_test1[:, :-y_test1.shape[1]], x_train1[:, -y_train1.shape[1]:].ravel(), x_test1[:, -y_test1.shape[1]:].ravel()
+
+    def train_models(self):
+
+        for model_name, model in self.models.items():
+            self.models[model_name] = model.fit(self.X_train, self.y_train)
+        pass
+
+    def predict(self, X):
+
+        model_predictions = dict()
+        for model_name, model in self.models.items():
+            model_predictions[model_name] = model.predict(X)
+        self.model_predictions = model_predictions
+        pass
+
+    @property
+    def results(self):
+
+        result_df = pd.DataFrame(index=CTA_class.MODELS, columns=self.metric_names)
+        for model_name, pred in self.model_predictions.items():
+            for metric, _ in CTA_class.METRICS.items():
+                metric_f = getattr(self, metric)
+                result_df.at[model_name, CTA_class.METRICS[metric]] = metric_f(pred)
+        return result_df
+
+    def test_auc(self, given_pred):
+        return roc_auc_score(self.y_test, given_pred)
+
+    def sens(self, given_pred):
+
+        def youden(sens, spec):
+            return sens[np.argmax(sens + spec)]
+
+        fpr, sens, _ = roc_curve(self.y_test, given_pred)
+        spec = 1 - fpr
+        return youden(sens, spec)
+
+    def spec(self, given_pred):
+
+        def youden(sens, spec):
+            return spec[np.argmax(sens + spec)]
+
+        fpr, sens, _ = roc_curve(self.y_test, given_pred)
+        spec = 1 - fpr
+        return youden(sens, spec)
+
+    def accuracy(self, given_pred):
+
+        def distance_from_one(val):
+            return abs(1 - val)
+
+        def youden(sens, spec, th):
+            return th[np.argmax(sens + spec)]
+
+        fpr, sens, ths = roc_curve(self.y_test, given_pred)
+        spec = 1 - fpr
+        th = youden(sens, spec, ths)
+        pred_classes = given_pred >= th
+        vals = self.y_test + pred_classes
+        total = 0
+        for v in map(distance_from_one, vals):
+            total += v
+        return total/len(given_pred)
+
+
 
 
 # create required directories if they do not exist
@@ -431,7 +573,9 @@ if __name__ == "__main__":
         cta_data = CTA_data_formatter(CTA_data_formatter.CURRENT_DATA_FILE)
         cta_data.to_csv()
 
+    curr_iter = 1
     for opt in iter_options(settings, iteration_start):
-        cta_data = CTA_class(**opt)
-        all_data = cta_data.data
-        print('all_data')
+        print(f'Starting settings no. {curr_iter} \n')
+        curr_iter += 1
+        cta_data = CTA_class(**opt)()
+

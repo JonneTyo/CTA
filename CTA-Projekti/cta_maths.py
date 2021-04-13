@@ -53,7 +53,7 @@ def maths_LogReg_pred(fitted_model, x_train, x_test):
 
     return pred_train, pred_test
 
-def maths_linear_reg_model(random_state=None):
+def maths_linreg_model(random_state=None):
     return LinearRegression(normalize=True)
 
 def maths_LinReg_pred(fitted_model, x_train, x_test):
