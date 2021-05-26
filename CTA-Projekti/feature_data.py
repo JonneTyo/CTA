@@ -4,7 +4,7 @@ import datetime
 
 
 DATA_DIR = 'Original data\\'
-CURRENT_DATA_FILE =  DATA_DIR + 'CTArekisteri_DATA_LABELS_2021-02-17_1146.csv'
+CURRENT_DATA_FILE =  DATA_DIR + 'CTArekisteri_DATA_LABELS_2021-05-17_1319.csv'
 csv_headers_original = csv_read(CURRENT_DATA_FILE).columns
 field_types = ['perustiedot', 'cta', 'perfuusio', 'seuranta', 'laakitys', 'labrat_ennen', 'labrat_jalkeen', 'ttgene',
                'tutkimukset']
