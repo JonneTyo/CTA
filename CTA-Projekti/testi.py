@@ -1,8 +1,13 @@
 import pandas as pd
+from itertools import product
+from sklearn.utils.extmath import cartesian
+import numpy as np
 
-df = pd.DataFrame({'A': [0, 1], 'B': [5, 7]})
-id = getattr(df, 'A')
-filter1 = id.isin([1, 2, 3, 4])
-filter2 = id.isin([])
-print(filter1)
-print(filter2)
+def my_generator():
+    for i in range(1, 10):
+        yield i
+
+x = my_generator()
+print(next(x))
+for i in x:
+    print(i)

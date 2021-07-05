@@ -32,12 +32,12 @@ def maths_mean_squared_err(labels,pred):
     return mean_squared_error(y_true=labels, y_pred=pred)
 
 def maths_lasso_model(random_state=None, alpha=0.01):
-    return Lasso(random_state=random_state, alpha=alpha)
+    return Lasso(random_state=random_state, alpha=alpha, positive=False)
 
 def maths_Lasso_pred(fitted_model, x_train, x_test):
     return fitted_model.predict(x_train), fitted_model.predict(x_test)
 
-def maths_loglasso_model(random_state=None, solver='saga'):
+def maths_LogReg_model(random_state=None, solver='saga'):
     return LogisticRegression(penalty='elasticnet', random_state=random_state, solver=solver, max_iter=10000,
                               fit_intercept=True, l1_ratio=0.5)
 
@@ -92,7 +92,7 @@ def maths_SVC_pred(fitted_model, x_train, x_test):
     return fitted_model.predict(x_train), fitted_model.predict(x_test)
 
 def maths_SVR_model(**kwargs):
-    return SVR(gamma='scale')
+    return SVR(gamma='scale', C=0.33)
 
 def maths_SVR_pred(fitted_model, x_train, x_test):
     return fitted_model.predict(x_train), fitted_model.predict(x_test)
@@ -136,18 +136,67 @@ def maths_bin_accuracy(pred, true):
 
     return c/n
 
-def maths_keras_model(random_state=None, name=None):
-    model = keras.Sequential(
-        [
-            keras.Input(shape=(51,)),
-            layers.Dense(51, activation="relu", kernel_initializer='random_normal', bias_initializer='random_normal'),
-            layers.Dense(14, activation="relu", kernel_initializer='random_normal', bias_initializer='random_normal'),
-            layers.Dense(2, activation="relu", kernel_initializer='random_normal', bias_initializer='random_normal')
+def maths_keras_old_model(random_state=None, weights_load_path=None):
+    n_input = 64
 
-        ],
-        name=f'keras_{name}'
-    )
+    inputs = keras.Input((n_input,1))
+    conv1 = layers.Conv1D(2, 4, activation='relu', kernel_initializer='random_normal', bias_initializer='zeros',
+                          input_shape=inputs.shape, padding='same')(inputs)
+    conv2 = layers.Conv1D(4, 2, strides=2, activation='relu', kernel_initializer='random_normal',
+                          bias_initializer='random_normal')(conv1)
+    pool1 = layers.MaxPool1D(pool_size=2, strides=2)(conv1)
+    conv3 = layers.Conv1D(8, 2, strides=2, activation='relu', kernel_initializer='random_normal',
+                          bias_initializer='random_normal')(pool1)
+    merge1 = layers.concatenate([pool1, conv2], axis=2)
+    pool2 = layers.MaxPool1D(pool_size=2, strides=2)(merge1)
+    conv4 = layers.Conv1D(16, 2, strides=2, activation='relu', kernel_initializer='random_normal',
+                          bias_initializer='random_normal')(pool2)
+    merge2 = layers.concatenate([pool2, conv3], axis=2)
+    pool3 = layers.MaxPool1D(pool_size=2, strides=2)(merge2)
+    conv5 = layers.Conv1D(32, 2, strides=2, activation='relu', kernel_initializer='random_normal',
+                          bias_initializer='random_normal')(pool3)
+
+    merge3 = layers.concatenate([pool3, conv4], axis=2)
+    pool4 = layers.MaxPool1D(pool_size=2, strides=2)(merge3)
+    merge4 = layers.concatenate([pool4, conv5], axis=2)
+    dense = layers.Dense(1, activation='sigmoid')(merge4)
+    pool5 = layers.MaxPool1D(pool_size=4, strides=1)(dense)
+    model = keras.Model(inputs=inputs, outputs=pool5)
+    model.compile(optimizer=keras.optimizers.Adam(lr=1e-3), loss=tf.keras.losses.binary_crossentropy,
+                  metrics=[tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.AUC()])
+
+    if weights_load_path:
+        print(f'LOADING WEIGHTS AT PATH:  {weights_load_path}')
+        model.load_weights(weights_load_path)
+
     return model
+
+def maths_keras_model(random_state=None, weights_load_path=None):
+    inputs = keras.Input((17, 1))
+    dens1 = layers.Dense(17, bias_initializer='normal')(inputs)
+    merge1 = layers.concatenate([inputs, dens1], axis=2)
+    conv1 = layers.Conv1D(6, 2, strides=1, bias_initializer='normal')(merge1)
+    conv2 = layers.Conv1D(6, 3, strides=1, bias_initializer='normal')(merge1)
+    pad2 = layers.ZeroPadding1D((0, 1))(conv2)
+    conv3 = layers.Conv1D(6, 4, strides=1, bias_initializer='normal')(merge1)
+    pad3 = layers.ZeroPadding1D((0, 2))(conv3)
+    conv4 = layers.Conv1D(6, 5, strides=1, bias_initializer='normal')(merge1)
+    pad4 = layers.ZeroPadding1D((0, 3))(conv4)
+    merge2 = layers.concatenate([conv1, pad2, pad3, pad4], axis=2)
+    masked1 = layers.Masking()(merge2)
+    dens2 = layers.Dense(4, activation='relu', bias_initializer='normal')(masked1)
+    pool1 = layers.MaxPool1D(pool_size=16)(dens2)
+    dens3 = layers.Dense(1, activation='sigmoid')(pool1)
+    model = keras.Model(inputs=inputs, outputs=dens3)
+    model.compile(optimizer=keras.optimizers.Adam(lr=1e-3), loss=tf.keras.losses.binary_crossentropy,
+                  metrics=[tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.AUC()])
+
+    if weights_load_path:
+        print(f'LOADING WEIGHTS AT PATH:  {weights_load_path}')
+        model.load_weights(weights_load_path)
+
+    return model
+
 
 def maths_keras_training(model, x_train, y_train, x_test, y_test, batch_size=64, epochs=10):
     model.compile(
