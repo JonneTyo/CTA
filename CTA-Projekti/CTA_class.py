@@ -77,25 +77,14 @@ class CTA_data_dictionary:
 
 
 class CTA_data_formatter:
+
     START_DATES = ['cta date']
     END_DATES = ['exitus date', 'date of death']
     END_OF_FOLLOW_UP_DATE = pd.Timestamp(datetime.date(2020, 12, 31))
     MAX_CATEGORICAL_VALUE = 20
     N_STENOSIS_TYPES = 3
-    BASIC_VARIABLES = ['sex', 'age', 'passed time', 'bmi']
-    RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-    CTA_VARIABLES = ['lm - type of stenosis', 'lada - type of stenosis', 'ladb - type of stenosis',
-                     'ladc - type of stenosis', 'd1 - type of stenosis', 'd2 - type of stenosis',
-                     'lcxa - type of stenosis', 'lcxb - type of stenosis', 'lcxc -type of stenosis',
-                     'lpd - type of stenosis', 'lom1 - type of stenosis', 'lom2 - type of stenosis',
-                     'im - type of stenosis', 'lpl - type of stenosis', 'rcaa - type of stenosis',
-                     'rcab - type of stenosis', 'rcac - type of stenosis', 'rpd - type of stenosis',
-                     'rpl - type of stenosis']
-    PET_VARIABLES = [f'str_seg_{n}' for n in range(1, 18) if n not in [2, 3]]
     PET_SIGNIFICANCE_LEVEL = 2.3
 
-    LABELS = ['mi or uap or all-cause death - status (2020)']
-    CARDIO_LABELS = ['mi - confirmation', 'uap - confirmation', 'cardiovascular death - status (2020)']
     TIME_RESTRICTIONS = [n*365 for n in range(1, 9)]
 
     REQ_DIRS = [DATA_DIR, RESULTS_DIR, PLOTS_DIR, ORIGINAL_DATA_DIR, PROCESSED_DATA_DIR]
@@ -104,20 +93,43 @@ class CTA_data_formatter:
         #     'require': {'min_val': 862}
         # },
         'diabetes': {
-            'transform': {'combine': [[3, 4, 5], [2, 1]],
+            'transform': {'combine': {0: [3, 4, 5],
+                                      1: [2, 1]},
                           'missing': 0},
         },
         # 'study indication': {
         #     'require': {'one_of': [1, 2, 4, 5, 11]}
         # },
         'chestpain': {
-            'transform': {'combine': [[3,4], [2, 5], [1]],
+            'transform': {'combine': {0: [3,4],
+                                      1: [2, 5],
+                                      2: [1]},
                           'missing': 0}
         },
         'smoking': {
-            'transform': {'combine': [[2], [1, 3]],
+            'transform': {'combine': {0: [2],
+                                      1: [1, 3]},
                           'missing': 0}
         }
+    }
+
+    VARIABLE_DICT = {
+        'BASIC_VARIABLES': ['sex', 'age', 'passed time', 'bmi'],
+        'RISK_VARIABLES': ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea'],
+        'CTA_VARIABLES': ['lm - type of stenosis', 'lada - type of stenosis', 'ladb - type of stenosis',
+                     'ladc - type of stenosis', 'd1 - type of stenosis', 'd2 - type of stenosis',
+                     'lcxa - type of stenosis', 'lcxb - type of stenosis', 'lcxc -type of stenosis',
+                     'lpd - type of stenosis', 'lom1 - type of stenosis', 'lom2 - type of stenosis',
+                     'im - type of stenosis', 'lpl - type of stenosis', 'rcaa - type of stenosis',
+                     'rcab - type of stenosis', 'rcac - type of stenosis', 'rpd - type of stenosis',
+                     'rpl - type of stenosis'],
+        'PET_VARIABLES': [f'str_seg_{n}' for n in range(1, 18) if n not in [2, 3]],
+        'PCA_VARIABLES': [],
+        'CTA_PCA_VARIABLES': [],
+        'PET_PCA_VARIABLES': [],
+        'PET_CTA_PCA_VARIABLES': [],
+        'LABELS': ['mi or uap or all-cause death - status (2020)'],
+        'CARDIO_LABELS': ['mi - confirmation', 'uap - confirmation', 'cardiovascular death - status (2020)']
     }
 
     def __init__(self, CTA_data_file_path=None, custom_variables=None):
@@ -151,36 +163,37 @@ class CTA_data_formatter:
             [f for f in os.listdir(return_path) if (os.path.isfile(os.path.join(return_path, f)) and ("CTArekisteri_DATA" in f and 'LABELS' not in f))])
         return return_path + '\\' + all_files[-1]
 
-    @add_new_var_to_type_list(CTA_VARIABLES)
+    @add_new_var_to_type_list(VARIABLE_DICT['CTA_VARIABLES'])
     @print_change_in_patients
     def calculate_min_cta_type(self):
         import re
 
         def min_above_a(x, a=-1):
             return x.loc[x > a].min()
-        vars_to_use = [n for n in CTA_data_formatter.CTA_VARIABLES if re.search(" - type of stenosis$", n)]
+        vars_to_use = [n for n in CTA_data_formatter.VARIABLE_DICT['CTA_VARIABLES'] if re.search(" - type of stenosis$", n)]
         results = self.data.loc[:, vars_to_use].apply(min_above_a, axis=1)
         self.data['min cta type'] = results
         pass
 
-    @add_new_var_to_type_list(CTA_VARIABLES)
+    @add_new_var_to_type_list(VARIABLE_DICT['CTA_VARIABLES'])
     @print_change_in_patients
     def calculate_max_cta_type(self):
         import re
 
-        vars_to_use = [n for n in CTA_data_formatter.CTA_VARIABLES if re.search(" - type of stenosis$", n)]
-        results = self.data.loc[:, vars_to_use].max(axis=1)
-        self.data['max cta type'] = results
+        vars_to_use = [n for n in CTA_data_formatter.VARIABLE_DICT['CTA_VARIABLES'] if re.search(" - type of stenosis$", n)]
+        high_risks = [n for n in vars_to_use if n.startswith(('lm', 'lada', 'lad-a', 'lcxa', 'lcx-a', 'rcaa', 'rca-a'))]
+        self.data['max cta type'] = self.data.loc[:, vars_to_use].max(axis=1)
+        self.data['max high risk cta type'] = self.data.loc[:, high_risks].max(axis=1)
         pass
 
-    @add_new_var_to_type_list(CTA_VARIABLES)
+    @add_new_var_to_type_list(VARIABLE_DICT['CTA_VARIABLES'])
     @print_change_in_patients
     def calculate_sis_values(self, variable_to_calculate="sis"):
         variable_th = 1
         if variable_to_calculate == "sss":
             variable_th = 2
 
-        df = self.data.loc[:, self.CTA_VARIABLES]
+        df = self.data.loc[:, self.VARIABLE_DICT['CTA_VARIABLES']]
 
         if 'stenosis type 1 count' in df.columns:
             df = df.loc[:, [f'stenosis type {n} count' for n in range(variable_th , self.N_STENOSIS_TYPES)]]
@@ -194,7 +207,76 @@ class CTA_data_formatter:
             self.data[variable_to_calculate] = vals
         pass
 
+    @add_new_var_to_type_list(VARIABLE_DICT['PCA_VARIABLES'])
+    @print_change_in_patients
+    def create_pca_component_values(self):
+        df = pd.read_csv(PROCESSED_DATA_DIR + f'\\Processed data.csv', index_col=0)
+        df = df.loc[:, self.VARIABLE_DICT['BASIC_VARIABLES'] + self.VARIABLE_DICT['RISK_VARIABLES'] + self.VARIABLE_DICT['CTA_VARIABLES'] + self.VARIABLE_DICT['PET_VARIABLES']]
+        df.drop(labels='passed time', axis=1, inplace=True)
+        fill_dict = {n: df[n].median() for n in df.columns}
+        df.fillna(fill_dict, inplace=True)
+        pca_mat = pd.read_csv(os.getcwd() + '\\Result analysis\\pca_matrix_2_components.csv', dtype='float64', index_col=0)
+        pca_mat.drop(labels=['explained variance ratios'], axis=1, inplace=True)
+        pca_mat = pca_mat.transpose()
+        product = df.dot(pca_mat)
+        columns = ['PCA1', 'PCA2']
+        product.columns = columns
+        product['PCA2'] = abs(product['PCA2'] - product['PCA2'].mean())
+        self.data = pd.concat([self.data, product], axis=1)
+        pass
 
+    @add_new_var_to_type_list(VARIABLE_DICT['CTA_PCA_VARIABLES'])
+    @print_change_in_patients
+    def create_ctapca_component_values(self):
+        df = pd.read_csv(PROCESSED_DATA_DIR + f'\\Processed data.csv', index_col=0)
+        df = df.loc[:, self.VARIABLE_DICT['BASIC_VARIABLES'] + self.VARIABLE_DICT['RISK_VARIABLES'] + self.VARIABLE_DICT['CTA_VARIABLES']]
+        df.drop(labels='passed time', axis=1, inplace=True)
+        fill_dict = {n: df[n].median() for n in df.columns}
+        df.fillna(fill_dict, inplace=True)
+        pca_mat = pd.read_csv(os.getcwd() + '\\Result analysis\\pca_matrix_2_components_no_pet.csv', dtype='float64', index_col=0, nrows=1)
+        pca_mat.drop(labels=['explained variance ratios'], axis=1, inplace=True)
+        pca_mat = pca_mat.transpose()
+        product = df.dot(pca_mat)
+        columns = ['CTA PCA1']
+        product.columns = columns
+        self.data = pd.concat([self.data, product], axis=1)
+        pass
+
+    @add_new_var_to_type_list((VARIABLE_DICT['PET_PCA_VARIABLES']))
+    @print_change_in_patients
+    def create_petpca_component_values(self):
+        df = pd.read_csv(PROCESSED_DATA_DIR + f'\\Processed data.csv', index_col=0)
+        df = df.loc[:, self.VARIABLE_DICT['BASIC_VARIABLES'] + self.VARIABLE_DICT['RISK_VARIABLES'] + self.VARIABLE_DICT['CTA_VARIABLES'] +
+                       self.VARIABLE_DICT['PET_VARIABLES']]
+        df.drop(labels='passed time', axis=1, inplace=True)
+        fill_dict = {n: df[n].median() for n in df.columns}
+        df.fillna(fill_dict, inplace=True)
+        pca_mat = pd.read_csv(os.getcwd() + '\\Result analysis\\pca_matrix_2_components_only_pet.csv', dtype='float64', index_col=0)
+        pca_mat.drop(labels=['explained variance ratios'], axis=1, inplace=True)
+        pca_mat = pca_mat.transpose()
+        product = df.dot(pca_mat)
+        columns = ['PET PCA1', 'PET PCA2']
+        product.columns = columns
+        product['PET PCA2'] = abs(product['PET PCA2'] - product['PET PCA2'].mean())
+        self.data = pd.concat([self.data, product], axis=1)
+        pass
+
+    @add_new_var_to_type_list((VARIABLE_DICT['PET_CTA_PCA_VARIABLES']))
+    @print_change_in_patients
+    def create_petctapca_component_values(self):
+        df = pd.read_csv(PROCESSED_DATA_DIR + f'\\Processed data.csv', index_col=0)
+        df = df.loc[:, self.VARIABLE_DICT['BASIC_VARIABLES'] + self.VARIABLE_DICT['RISK_VARIABLES'] + self.VARIABLE_DICT['CTA_VARIABLES']]
+        df.drop(labels='passed time', axis=1, inplace=True)
+        fill_dict = {n: df[n].median() for n in df.columns}
+        df.fillna(fill_dict, inplace=True)
+        pca_mat = pd.read_csv(os.getcwd() + '\\Result analysis\\pca_matrix_2_components_no_pet.csv', dtype='float64', index_col=0, nrows=1)
+        pca_mat.drop(labels=['explained variance ratios'], axis=1, inplace=True)
+        pca_mat = pca_mat.transpose()
+        product = df.dot(pca_mat)
+        columns = ['PET CTA PCA1']
+        product.columns = columns
+        self.data = pd.concat([self.data, product], axis=1)
+        pass
     # returns a dataframe where each column has been converted to the best possible datatype
     @print_change_in_patients
     def convert_dtypes(self):
@@ -248,8 +330,20 @@ class CTA_data_formatter:
         self.data = self.data.loc[self.data['ams collab suspected cad'] == 1]
         pass
 
-    def to_csv(self, file_path=PROCESSED_DATA_DIR + '\\Processed data.csv'):
-        self.data.to_csv(file_path)
+    def to_csv(self, file_path=PROCESSED_DATA_DIR + '\\Processed data.csv', standardize=True):
+        unaltered = self.VARIABLE_DICT['LABELS'] + self.VARIABLE_DICT['PCA_VARIABLES'] + self.VARIABLE_DICT['CTA_PCA_VARIABLES'] + ['passed time'] + self.VARIABLE_DICT['PET_PCA_VARIABLES'] + self.VARIABLE_DICT['PET_CTA_PCA_VARIABLES']
+        df = self.data.drop(labels=unaltered, axis=1)
+        cols = df.columns
+        if standardize:
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            scaler.fit(df)
+            df = scaler.transform(df)
+        df = pd.DataFrame(data=df, index=self.data.index, columns=cols, dtype='float64')
+        df = pd.concat([df, self.data.loc[:, unaltered]], axis=1)
+        df.to_csv(file_path)
+        for key, item in self.VARIABLE_DICT.items():
+            pd.Series(item, dtype='string').to_csv(PROCESSED_DATA_DIR + f'\\{key}.csv')
 
     # implements the changes to the data specified in CUSTOM_HANDLING
     @print_change_in_patients
@@ -301,9 +395,15 @@ class CTA_data_formatter:
 
     @staticmethod
     def handle_transform(df, label, combine, missing=np.nan):
-        n_max = len(combine)
-        for i, vals in enumerate(combine):
-            df.loc[df.loc[:, label].isin(vals), label] = i if i != missing else n_max
+        for ind, val in df[label].items():
+            if val != val:
+                if missing != np.nan:
+                    df.at[ind, label] = missing
+                continue
+            for key, item in combine.items():
+                if int(val) in item:
+                    df.at[ind, label] = key
+                    break
         return df
 
     # @print_change_in_patients
@@ -382,13 +482,13 @@ class CTA_data_formatter:
             if i > 0:
                 count_vals[new_c_names[i]] = stenosis_data.apply(lambda x: countif(x, i - 1), axis=1)
                 self.data[new_c_names[i]] = count_vals[new_c_names[i]]
-                self.CTA_VARIABLES.append(new_c_names[i])
+                self.VARIABLE_DICT['CTA_VARIABLES'].append(new_c_names[i])
 
         pass
 
     def get_cta_and_pet_variables(self):
-        to_return_cta = self.CTA_VARIABLES
-        to_return_pet = self.PET_VARIABLES
+        to_return_cta = self.VARIABLE_DICT['CTA_VARIABLES']
+        to_return_pet = self.VARIABLE_DICT['PET_VARIABLES']
         for col in self.raw_data.columns:
             if 'type of stenosis' in str(col).lower():
                 to_return_cta.append(col.lower())
@@ -404,7 +504,7 @@ class CTA_data_formatter:
             for i in item:
                 all_vars.append(i.lower())
         for col in self.columns:
-            if col in all_vars or col in CTA_data_formatter.LABELS + CTA_data_formatter.CARDIO_LABELS:
+            if col in all_vars or col in CTA_data_formatter.VARIABLE_DICT['LABELS'] + CTA_data_formatter.VARIABLE_DICT['CARDIO_LABELS']:
                 continue
             self.data.drop(labels=col, axis=1, inplace=True)
         pass
@@ -424,35 +524,39 @@ class CTA_data_formatter:
     @property
     def all_variables(self):
         to_return = {
-            'cta': self.CTA_VARIABLES,
-            'pet': self.PET_VARIABLES,
-            'basic': CTA_data_formatter.BASIC_VARIABLES,
-            'risk': CTA_data_formatter.RISK_VARIABLES
+            'cta': self.VARIABLE_DICT['CTA_VARIABLES'],
+            'pet': self.VARIABLE_DICT['PET_VARIABLES'],
+            'basic': CTA_data_formatter.VARIABLE_DICT['BASIC_VARIABLES'],
+            'risk': CTA_data_formatter.VARIABLE_DICT['RISK_VARIABLES'],
+            'pca': self.VARIABLE_DICT['PCA_VARIABLES'],
+            'cta pca': self.VARIABLE_DICT['CTA_PCA_VARIABLES'],
+            'pet pca': self.VARIABLE_DICT['PET_PCA_VARIABLES'],
+            'pet cta pca': self.VARIABLE_DICT['PET_CTA_PCA_VARIABLES']
         }
         return to_return
 
-    @add_new_var_to_type_list(LABELS)
+    @add_new_var_to_type_list(VARIABLE_DICT['LABELS'])
     @print_change_in_patients
     def combine_labels(self):
 
-        df1 = self.data.loc[:, CTA_data_formatter.LABELS]
+        df1 = self.data.loc[:, CTA_data_formatter.VARIABLE_DICT['LABELS']]
         new_df = df1.max(axis=1)
         self.data['event'] = new_df
-        self.data.drop(labels=CTA_data_formatter.LABELS, axis=1, inplace=True)
-        self.data.drop(labels=CTA_data_formatter.CARDIO_LABELS, axis=1, inplace=True)
-        self.LABELS.clear()
+        self.data.drop(labels=CTA_data_formatter.VARIABLE_DICT['LABELS'], axis=1, inplace=True)
+        self.data.drop(labels=CTA_data_formatter.VARIABLE_DICT['CARDIO_LABELS'], axis=1, inplace=True)
+        self.VARIABLE_DICT['LABELS'].clear()
         pass
 
-    @add_new_var_to_type_list(CARDIO_LABELS)
+    @add_new_var_to_type_list(VARIABLE_DICT['CARDIO_LABELS'])
     @print_change_in_patients
     def combine_cv_labels(self):
-        df2 = self.data.loc[:, CTA_data_formatter.CARDIO_LABELS]
+        df2 = self.data.loc[:, CTA_data_formatter.VARIABLE_DICT['CARDIO_LABELS']]
         new_df = df2.max(axis=1)
         self.data['cv event'] = new_df
-        self.data.drop(labels=CTA_data_formatter.CARDIO_LABELS, axis=1, inplace=True)
+        self.data.drop(labels=CTA_data_formatter.VARIABLE_DICT['CARDIO_LABELS'], axis=1, inplace=True)
         pass
 
-    @add_new_var_to_type_list(LABELS)
+    @add_new_var_to_type_list(VARIABLE_DICT['LABELS'])
     @print_change_in_patients
     def create_time_restricted_labels(self, time_ths=TIME_RESTRICTIONS):
 
@@ -461,7 +565,7 @@ class CTA_data_formatter:
             self.data[f'event {int(th/365)} years'] = new_vals
         pass
 
-    @add_new_var_to_type_list(CARDIO_LABELS)
+    @add_new_var_to_type_list(VARIABLE_DICT['CARDIO_LABELS'])
     @print_change_in_patients
     def create_time_restricted_cv_labels(self, time_ths=TIME_RESTRICTIONS):
         for th in time_ths:
@@ -469,27 +573,43 @@ class CTA_data_formatter:
             self.data[f'cv event {th/365} years'] = new_vals
         pass
 
-    @add_new_var_to_type_list(PET_VARIABLES)
+    @add_new_var_to_type_list(VARIABLE_DICT['PET_VARIABLES'])
     @print_change_in_patients
     def create_min_str_seg(self):
         str_segs = ['str_seg_' + str(n) for n in range(1, 18) if n not in [2,3]]
         self.data['min_str_seg'] = self.data.loc[:, str_segs].min(axis=1).apply(lambda x: min(10, max(0, x)))
         pass
 
-    @add_new_var_to_type_list(PET_VARIABLES)
+    @add_new_var_to_type_list(VARIABLE_DICT['PET_VARIABLES'])
     @print_change_in_patients
     def create_max_str_seg(self):
         str_segs = ['str_seg_' + str(n) for n in range(1, 18) if n not in [2, 3]]
+        lad_segs = [n for n in str_segs if n.endswith(('1', '7', '8', '13', '14', '17'))]
+        lcx_segs = [n for n in str_segs if n.endswith(('5', '6', '11', '12', '16'))]
+        rca_segs = [n for n in str_segs if n.endswith(('4', '9', '10', '15'))]
         self.data['max_str_seg'] = self.data.loc[:, str_segs].max(axis=1).apply(lambda x: min(5, max(0, x)))
+        self.data['max_lad_str'] = self.data.loc[:, lad_segs].max(axis=1).apply(lambda x: min(5, max(0, x)))
+        self.data['max_lcx_str'] = self.data.loc[:, lcx_segs].max(axis=1).apply(lambda x: min(5, max(0, x)))
+        self.data['max_rca_str'] = self.data.loc[:, rca_segs].max(axis=1).apply(lambda x: min(5, max(0, x)))
+        pass
+
+    @add_new_var_to_type_list(VARIABLE_DICT['PET_VARIABLES'])
+    @print_change_in_patients
+    def count_non_zero_str_segs(self):
+        str_segs = ['str_seg_' + str(n) for n in range(1, 18) if n not in [2, 3]]
+        df = self.data.loc[:, str_segs]
+        df = df > 0
+        df = df.sum(axis=1)
+        self.data['non-zero pet segs'] = df
         pass
 
 
     @print_change_in_patients
     def remove_bad_patients(self, ratio_breakpoint=2 / 3):
         variables_to_inspect = list()
-        variables_to_inspect.extend(CTA_data_formatter.BASIC_VARIABLES)
-        variables_to_inspect.extend(CTA_data_formatter.RISK_VARIABLES)
-        variables_to_inspect.extend(self.CTA_VARIABLES)
+        variables_to_inspect.extend(CTA_data_formatter.VARIABLE_DICT['BASIC_VARIABLES'])
+        variables_to_inspect.extend(CTA_data_formatter.VARIABLE_DICT['RISK_VARIABLES'])
+        variables_to_inspect.extend(self.VARIABLE_DICT['CTA_VARIABLES'])
 
         for val in range(1, CTA_data_formatter.N_STENOSIS_TYPES):
             variables_to_inspect.remove(f'stenosis type {val} count')
@@ -526,9 +646,9 @@ class CTA_data_formatter:
     def pet_preprocessing(self):
         def relu(x):
             return np.max([0.0, self.PET_SIGNIFICANCE_LEVEL-x])
-        df = self.data.loc[:, self.PET_VARIABLES]
+        df = self.data.loc[:, self.VARIABLE_DICT['PET_VARIABLES']]
         df = df.applymap(relu)
-        self.data.loc[:, self.PET_VARIABLES] = df
+        self.data.loc[:, self.VARIABLE_DICT['PET_VARIABLES']] = df
         pass
 
     def cta_preprocessing(self):
@@ -540,9 +660,9 @@ class CTA_data_formatter:
                         5: 2,
                         6: 2
                         }
-        df = self.data.loc[:, self.CTA_VARIABLES]
+        df = self.data.loc[:, self.VARIABLE_DICT['CTA_VARIABLES']]
         df = df.applymap(lambda x: combine_dict[x] if not np.isnan(x) else 0)
-        self.data.loc[:, self.CTA_VARIABLES] = df
+        self.data.loc[:, self.VARIABLE_DICT['CTA_VARIABLES']] = df
         pass
 
     @print_change_in_patients
@@ -554,26 +674,8 @@ class CTA_data_formatter:
 
 class CTA_class:
     N_ITERATIONS = 100
-    MODELS = ['lasso', 'SVC', 'linreg', 'SVR']
+    MODELS = ['lasso', 'linreg', 'SVR10', 'ridge']
     METRICS = {'test_auc': 'Test AUC', 'sens': 'Sensitivity', 'spec': 'Specificity', 'accuracy': 'Accuracy'}
-    BASIC_VARIABLES = ['sex', 'age', 'passed time', 'bmi']
-    RISK_VARIABLES = ['diabetes', 'smoking', 'chestpain', 'hypertension', 'dyslipidemia', 'dyspnea']
-    CTA_VARIABLES = ['stenosis type 1 count', 'stenosis type 2 count',
-                     'lm - type of stenosis', 'lada - type of stenosis',
-                     'ladb - type of stenosis', 'ladc - type of stenosis',
-                     'd1 - type of stenosis', 'd2 - type of stenosis',
-                     'lcxa - type of stenosis', 'lcxb - type of stenosis',
-                     'lcxc -type of stenosis', 'lpd - type of stenosis',
-                     'lom1 - type of stenosis', 'lom2 - type of stenosis',
-                     'im - type of stenosis', 'lpl - type of stenosis',
-                     'rcaa - type of stenosis', 'rcab - type of stenosis',
-                     'rcac - type of stenosis', 'rpd - type of stenosis',
-                     'rpl - type of stenosis', 'min cta type', 'max cta type', 'sis']
-    PET_VARIABLES = ['str_seg_1', 'str_seg_4',
-                    'str_seg_5', 'str_seg_6', 'str_seg_7', 'str_seg_8',
-                    'str_seg_9', 'str_seg_10', 'str_seg_11', 'str_seg_12',
-                   'str_seg_13', 'str_seg_14', 'str_seg_15', 'str_seg_16',
-                    'str_seg_17', 'min_str_seg', 'max_str_seg']
 
     def __init__(self, label='event', all_labels=None, time=None, time_th=None, **settings):
         self.original_data = pd.read_csv(PROCESSED_DATA_DIR + '\\Processed data.csv', index_col=0, header=0)
@@ -583,56 +685,103 @@ class CTA_class:
         self.label = label + f' {time} years' if time else label
         self.models = {i: j for (i, j) in zip(CTA_class.MODELS, [getattr(CTA_maths, f'maths_{n}_model')() for n in CTA_class.MODELS])}
         self.model_predictions = dict()
+        self.binary_threshold = dict()
         self.keras_model = CTA_maths.maths_keras_model()
         self.keras_th = None
         self.time = time
         self.time_th = time_th
         self.label_time_th = label + f' {time_th} years' if time_th else self.label
         self.all_labels = all_labels
+        self.coefs = {}
 
-    def __call__(self, write_to_csv=True, n_splits=4, n_repeats=25):
+        self.BASIC_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\BASIC_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.RISK_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\RISK_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.CTA_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\CTA_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.PET_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\PET_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.PCA_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\PCA_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.CTA_PCA_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\CTA_PCA_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.PET_PCA_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\PET_PCA_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+        self.PET_CTA_PCA_VARIABLES = pd.read_csv(PROCESSED_DATA_DIR + '\\PET_CTA_PCA_VARIABLES.csv', squeeze=True, index_col=0).to_list()
+
+    def __call__(self, write_to_csv=True, n_splits=4, n_repeats=10):
 
         df = pd.DataFrame()
-        coefs = pd.Series(index=self.data.columns, dtype='float64')
+        coefs = {'lasso': pd.Series(index=self.data.columns, dtype='float64'),
+                 'SVR10': pd.DataFrame(dtype='float64'),
+                 'SVR05': pd.DataFrame(dtype='float64'),
+                 'SVR03': pd.DataFrame(dtype='float64'),
+                 'ridge': pd.Series(index=self.data.columns, dtype='float64'),
+                 'ElasticNet': pd.Series(index=self.data.columns, dtype='float64')}
         n_iterations = n_splits*n_repeats
         train_test_splits = self.cta_train_test_split(n_splits=n_splits, n_iterations=n_repeats)
         for n, (X_train, X_test, y_train, y_test, yth_train, yth_test) in enumerate(train_test_splits):
             print(f'Iteration {n + 1} out of {n_iterations}')
             self.X_train, self.X_test, self.y_train, self.y_test, self.yth_train, self.yth_test = X_train, X_test, y_train, y_test, yth_train, yth_test
             self.train_models()
-            self.get_coefs()
             self.predict(self.X_test)
+            self.get_coefs()
             if df.shape[0] == 0:
                 df = self.results
                 coefs = self.coefs
             else:
                 df = df + self.results
-                coefs = coefs + self.coefs
+                for key, items in coefs.items():
+                    coefs[key] = coefs[key] + self.coefs[key]
 
         df = df / n_iterations
-        coefs = coefs / n_iterations
+        for key, items in coefs.items():
+            coefs[key] = coefs[key] / n_iterations
         if write_to_csv:
             if hasattr(self, 'only_pet') and self.only_pet:
                 df.to_csv(RESULTS_PET_DIR + f'\\results{self.settings_to_str}.csv')
-                coefs.to_csv(COEFS_PET_DIR + f'\\coefs{self.settings_to_str}.csv')
+                for key, item in coefs.items():
+                    item.to_csv(COEFS_PET_DIR + f'\\{key}_coefs{self.settings_to_str}.csv')
             else:
                 df.to_csv(RESULTS_DIR + f'\\results{self.settings_to_str}.csv')
-                coefs.to_csv(COEFS_DIR + f'\\coefs{self.settings_to_str}.csv')
+                for key, item in coefs.items():
+                    item.to_csv(COEFS_DIR + f'\\{key}_coefs{self.settings_to_str}.csv')
         return df
 
     @property
     def data(self):
+
         df = self.original_data.copy()
         time_dropped = False
+
         if hasattr(self, 'only_pet') and self.only_pet:
-            df.dropna(how='all', subset=self.PET_VARIABLES, inplace=True)
-        if hasattr(self, 'keep_basic') and not self.keep_basic:
+            subset = [f'str_seg_{n}' for n in range(1, 17) if n not in [2,3]]
+            df.dropna(how='all', subset=subset, inplace=True)
+        if not (hasattr(self, 'basic') and self.basic):
             df.drop(labels=self.BASIC_VARIABLES + self.RISK_VARIABLES, axis=1, inplace=True)
             time_dropped = True
-        if not self.keep_cta:
+        if not (hasattr(self, 'cta') and self.cta):
             df.drop(labels=self.CTA_VARIABLES, axis=1, inplace=True)
-        if not self.keep_pet:
+        if not (hasattr(self, 'pet') and self.pet):
             df.drop(labels=self.PET_VARIABLES, axis=1, inplace=True)
+        # if not (hasattr(self, 'pca') and self.pca):
+        #     df.drop(labels=self.PCA_VARIABLES, axis=1, inplace=True)
+        # if not (hasattr(self, 'ctapca') and self.ctapca):
+        #     df.drop(labels=self.CTA_PCA_VARIABLES, axis=1, inplace=True)
+
+        # create a list of pca variables to drop based on the settings, then drop them
+        pca_vars_to_drop = list()
+        if hasattr(self, 'pca') and self.pca:
+            if hasattr(self, 'pet') and self.pet:
+                pca_vars_to_drop += self.CTA_PCA_VARIABLES + self.PET_CTA_PCA_VARIABLES
+            else:
+                pca_vars_to_drop += self.PCA_VARIABLES + self.PET_PCA_VARIABLES
+
+            if hasattr(self, 'only_pet') and self.only_pet:
+                pca_vars_to_drop += self.PCA_VARIABLES + self.CTA_PCA_VARIABLES
+            else:
+                pca_vars_to_drop += self.PET_PCA_VARIABLES + self.PET_CTA_PCA_VARIABLES
+        else:
+            pca_vars_to_drop = self.PCA_VARIABLES + self.CTA_PCA_VARIABLES + self.PET_VARIABLES + self.PET_CTA_PCA_VARIABLES
+
+        # remove duplicates
+        pca_vars_to_drop = [n for n in pca_vars_to_drop if n not in pca_vars_to_drop]
+        df.drop(labels=pca_vars_to_drop, axis=1, inplace=True)
+
 
         df.drop(index=df.loc[df[self.label] == -1.0].index, inplace=True)
         df.dropna(axis=0, how='any', subset=['event'], inplace=True)
@@ -723,14 +872,19 @@ class CTA_class:
         #                                                                                                                        1]:].ravel()
 
     def train_models(self):
-
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {model_name: executor.submit(model.fit, self.X_train, self.y_train) for (model_name, model) in self.models.items()}
         pass
 
     def predict(self, X):
+        def youden(sens, spec, th):
+            return th[np.argmax(sens + spec)]
         for model_name, model in self.models.items():
             self.model_predictions[model_name] = model.predict(X)
+            fpr, sens, th = roc_curve(self.labels.loc[X.index].astype(int), self.model_predictions[model_name])
+            spec = 1-fpr
+            th = youden(sens, spec, th)
+            self.binary_threshold[model_name] = th
         pass
 
     @property
@@ -841,7 +995,32 @@ class CTA_class:
         return x_train
 
     def get_coefs(self):
-        self.coefs = pd.Series(data=self.models['lasso'].coef_, index=self.data.columns)
+        self.coefs['lasso'] = pd.Series(data=self.models['lasso'].coef_, index=self.data.columns, dtype='float64')
+        self.coefs['ridge'] = pd.Series(data=self.models['ridge'].coef_, index=self.data.columns, dtype='float64')
+        self.coefs['SVR10'] = pd.DataFrame(data=self.models['SVR10'].dual_coef_, dtype='float64')
+        #self.coefs['SVR05'] = pd.DataFrame(data=self.models['SVR05'].dual_coef_, dtype='float64')
+        #self.coefs['SVR03'] = pd.DataFrame(data=self.models['SVR03'].dual_coef_, dtype='float64')
+        #self.coefs['ElasticNet'] = pd.Series(data=self.models['ElasticNet'].coef_, index=self.data.columns, dtype='float64')
+        pass
+
+    def manual_train_test_split(self):
+
+        train_ind = self.original_data.loc[self.data.index, :].loc[self.original_data['passed time'] <= 5*365].index
+        test_ind = self.original_data.loc[self.data.index, :].loc[self.original_data['passed time'] > 5*365].index
+
+        X_train, X_test = self.data_fill_na.loc[train_ind, :], self.data_fill_na.loc[test_ind, :]
+        X_train = X_train.to_numpy().astype('float64')
+        X_test = X_test.to_numpy().astype('float64')
+
+        y_train, y_test = self.labels.loc[train_ind], self.labels.loc[test_ind]
+        y_train = y_train.to_numpy().astype('float64')
+        y_test = y_test.to_numpy().astype('float64')
+
+        yth_train, yth_test = self.labels_time_th[train_ind].to_numpy().astype('float64'), self.labels_time_th[test_ind].to_numpy().astype('float64')
+        return [(X_train, X_test, y_train, y_test, yth_train, yth_test)]
+
+
+
         pass
 
 
@@ -862,7 +1041,7 @@ def delete_folder_contents(dir=RESULTS_DIR):
     pass
 
 # iterate through all desired dataset settings
-def iter_options(settings, n_start=0):
+def iter_options(settings, n_start=1):
     n_options = 2 ** len(settings)
     for i in range(n_start, n_options):
         b_str = bin(i)[2:]
@@ -872,14 +1051,20 @@ def iter_options(settings, n_start=0):
             pad = len(settings) - len(b_str)
             for j in range(pad):
                 b_str = '0' + b_str
-
+        has_data = False
         for j, (key, item) in zip(b_str, settings.items()):
+            if (key not in ['only_pet']) and bool(int(j)) > 0:
+                has_data = True
             settings[key] = bool(int(j))
+
+        if settings['ctapca'] and (settings['pet'] or settings['pca']):
+            continue
 
         # skip settings possibility that pet are kept but cta are not
         #if (not settings['keep_cta']) and settings['keep_pet']:
         #    continue
-        yield settings
+        if has_data:
+            yield settings
 
 
 CUSTOM_VARIABLES = {
@@ -889,30 +1074,36 @@ CUSTOM_VARIABLES = {
         #'cv events': CTA_data_formatter.combine_cv_labels,
         #'timed events': CTA_data_formatter.create_time_restricted_labels,
         #'timed cv events': CTA_data_formatter.create_time_restricted_cv_labels,
-        'min cta type': CTA_data_formatter.calculate_min_cta_type,
+        #'min cta type': CTA_data_formatter.calculate_min_cta_type,
         'max cta type': CTA_data_formatter.calculate_max_cta_type,
         'sis': CTA_data_formatter.calculate_sis_values,
-        'min str seg': CTA_data_formatter.create_min_str_seg,
+        #'min str seg': CTA_data_formatter.create_min_str_seg,
         'max str seg': CTA_data_formatter.create_max_str_seg,
+        'non-zero str segs': CTA_data_formatter.count_non_zero_str_segs,
+        'PCA components': CTA_data_formatter.create_pca_component_values,
+        'CTA PCA components': CTA_data_formatter.create_ctapca_component_values,
+        'PET PCA components': CTA_data_formatter.create_petpca_component_values,
+        'PET CTA PCA components': CTA_data_formatter.create_petctapca_component_values
     }
 
 if __name__ == "__main__":
-    format_original_data = False
+    format_original_data = True
     iterate_all_options = True
     iteration_start = 0
     train_keras = False
-    train_models = True
+    train_models = False
     all_labels = None
 
 
     settings = {
-        'only_pet': True,
         #'timed': False,
-        'keep_cta': True,
-        'keep_pet': True,
-        #'cv': False
+        'cta': True,
+        'pet': True,
+        'pca': True,
+        'basic': True,
+        'ctapca': False,
     }
-    training_times = [n for n in range(6)]
+    training_times = [None, 2, 3, 4, 8]
 
     if format_original_data:
         cta_data = CTA_data_formatter(custom_variables=CUSTOM_VARIABLES)
@@ -922,24 +1113,26 @@ if __name__ == "__main__":
     if train_models:
         curr_iter = 1
         delete_folder_contents()
-        delete_folder_contents(RESULTS_PET_DIR)
+        #delete_folder_contents(RESULTS_PET_DIR)
+        delete_folder_contents(COEFS_DIR)
+        #delete_folder_contents(COEFS_PET_DIR)
         for opt in iter_options(settings, iteration_start):
             for train_t in training_times:
                 print(f'\n Starting settings no. {curr_iter} with {train_t} years.')
                 cta_data = None
                 if train_t == 0:
-                    cta_data = CTA_class(all_labels=all_labels, **opt)
+                    cta_data = CTA_class(only_pet=False, all_labels=all_labels, **opt)
                 else:
-                    cta_data = CTA_class(all_labels=all_labels, time=train_t, **opt)
+                    cta_data = CTA_class(only_pet=False, all_labels=all_labels, time=train_t, **opt)
                 cta_data()
 
             curr_iter += 1
 
     settings = {
         'only_pet': False,
-        'keep_basic': False,
-        'keep_cta': False,
-        'keep_pet': True,
+        'basic': False,
+        'cta': False,
+        'pet': True,
         'cv': False
     }
     if train_keras:

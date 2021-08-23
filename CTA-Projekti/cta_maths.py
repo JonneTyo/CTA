@@ -5,6 +5,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Lasso
+from sklearn.linear_model import Ridge
+from sklearn.linear_model import ElasticNet
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
@@ -13,20 +15,10 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-#Sums over a list and returns the number of Nones
-def maths_sum_Nones(list):
-    n = 0
-    for i in list:
-        if i is None:
-            n += 1
-    return n
-
-
-#todo PCA
-def maths_PCA(x, labels, n_comps=2, max_i=100):
-
-    pass
-
+def linear_map(new_range, old_range):
+    def wrapper_func(x):
+        return (x - old_range[0])/(old_range[1] - old_range[0])*(new_range[1] - new_range[0]) + new_range[0]
+    return wrapper_func
 
 def maths_mean_squared_err(labels,pred):
     return mean_squared_error(y_true=labels, y_pred=pred)
@@ -39,7 +31,7 @@ def maths_Lasso_pred(fitted_model, x_train, x_test):
 
 def maths_LogReg_model(random_state=None, solver='saga'):
     return LogisticRegression(penalty='elasticnet', random_state=random_state, solver=solver, max_iter=10000,
-                              fit_intercept=True, l1_ratio=0.5)
+                              fit_intercept=True, l1_ratio=0.2, class_weight='balanced')
 
 def maths_LogReg_pred(fitted_model, x_train, x_test):
 
@@ -91,8 +83,20 @@ def maths_SVC_model(**kwargs):
 def maths_SVC_pred(fitted_model, x_train, x_test):
     return fitted_model.predict(x_train), fitted_model.predict(x_test)
 
-def maths_SVR_model(**kwargs):
-    return SVR(gamma='scale', C=0.33)
+def maths_SVR10_model(**kwargs):
+    return SVR(kernel='linear', gamma='scale', C=1)
+
+def maths_SVR05_model(**kwargs):
+    return SVR(kernel='linear', gamma='scale', C=0.5)
+
+def maths_SVR03_model(**kwargs):
+    return SVR(kernel='linear', gamma='scale', C=0.3)
+
+def maths_ridge_model(**kwargs):
+    return Ridge(alpha=0.5)
+
+def maths_ElasticNet_model(**kwargs):
+    return ElasticNet(alpha=0.5)
 
 def maths_SVR_pred(fitted_model, x_train, x_test):
     return fitted_model.predict(x_train), fitted_model.predict(x_test)

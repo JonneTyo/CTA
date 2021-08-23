@@ -1,0 +1,5 @@
+,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version
+event,0.7532189532762175,0.8452651515151516,0.6357718422774867,0.6478575050709939,lasso,results_only_pet_pca_basic_3_years.csv
+cv event,-inf,,,,,
+timed event,-inf,,,,,
+timed cv event,-inf,,,,,

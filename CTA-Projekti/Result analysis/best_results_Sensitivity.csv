@@ -1,0 +1,5 @@
+,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version
+event,0.7478190517329714,0.9134469696969696,0.5565669993455498,0.5771684535883317,linreg,results_only_pet_pca_basic_3_years.csv
+cv event,,-inf,,,,
+timed event,,-inf,,,,
+timed cv event,,-inf,,,,

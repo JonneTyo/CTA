@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 from dataclasses import dataclass
 from itertools import product
+from sklearn.decomposition import PCA
 
 
 class CTA_analyzer:
@@ -188,6 +189,27 @@ class CTA_analyzer:
             best_results.to_csv(self.output_dir + '\\' + 'best_results_' + m + '.csv')
         pass
 
+    def PCA(self):
+        from CTA_class import CTA_class
+        settings = {'pet': False,
+                    'cta': True,
+                    'basic': True,
+                    'only_pet': True,
+                    'pca': False
+                    }
+        n_components = [i for i in range(2, 11)]
+        cta_data = CTA_class(**settings)
+        data = cta_data.data_fill_na
+        for n in n_components:
+            pca = PCA(n_components=n)
+            pca.fit(data)
+            components_mat = pd.DataFrame(data=pca.components_, columns=data.columns)
+            explained_variance_ratios = pd.Series(pca.explained_variance_ratio_, dtype='float64')
+            components_mat['explained variance ratios'] = explained_variance_ratios
+            components_mat.to_csv(self.output_dir + f'\\pca_matrix_{n}_components_only_pet_no_pet.csv')
+
+
+
 
     @property
     def n_results(self):
@@ -198,8 +220,9 @@ if __name__ == '__main__':
     OUTPUT_DIR = os.getcwd() + '\\Result analysis'
 
     to_analyze = {
-        'best_results': CTA_analyzer.get_best_results,
-        'differences': CTA_analyzer.get_setting_differences
+        #'best_results': CTA_analyzer.get_best_results,
+        #'differences': CTA_analyzer.get_setting_differences
+        'PCA': CTA_analyzer.PCA
     }
     analyzer = CTA_analyzer(RESULTS_DIR, OUTPUT_DIR, **to_analyze)
     analyzer()
