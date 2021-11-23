@@ -144,6 +144,7 @@ class CTA_data_formatter:
         self.data.columns = self.columns
         self.handle_special_cases(**CTA_data_formatter.CUSTOM_HANDLING)
         self.drop_rows()
+
         #self.flip_binaries(['mi or uap or all-cause death - status (2020)'])
         self.pet_preprocessing()
         self.cta_preprocessing()
@@ -151,6 +152,8 @@ class CTA_data_formatter:
             for key, method in custom_variables.items():
                 method(self)
         #self.drop_patients_by_time()
+        self.create_early_revasc()
+        self.create_late_revasc()
         self.create_time_restricted_labels()
         self.drop_columns()
         self.remove_bad_patients()
@@ -671,6 +674,22 @@ class CTA_data_formatter:
         self.data = df.loc[df['passed time'] <= time_max]
         pass
 
+    @add_new_var_to_type_list(VARIABLE_DICT['LABELS'])
+    @print_change_in_patients
+    def create_early_revasc(self):
+        self.data['early revasc'] = self.data.loc[:, ['early pci performed (6 mo)', 'early cabg performed (6 mo)']].max(axis=1)
+        self.data.drop(labels=['early pci performed (6 mo)', 'early cabg performed (6 mo)'], axis=1, inplace=True)
+        pass
+
+    @add_new_var_to_type_list(VARIABLE_DICT['LABELS'])
+    @print_change_in_patients
+    def create_late_revasc(self):
+        late_revascs = self.data.loc[:, ['late pci - date', 'late cabg - date']]
+        late_revascs = late_revascs.notna().astype(int).max(axis=1)
+        self.data['late revasc'] = late_revascs
+        self.data.drop(labels=['late pci - date', 'late cabg - date'], axis=1, inplace=True)
+        pass
+
 
 class CTA_class:
     N_ITERATIONS = 100
@@ -720,15 +739,20 @@ class CTA_class:
             self.train_models()
             self.predict(self.X_test)
             self.get_coefs()
-            if df.shape[0] == 0:
-                df = self.results
-                coefs = self.coefs
-            else:
-                df = df + self.results
-                for key, items in coefs.items():
-                    coefs[key] = coefs[key] + self.coefs[key]
+            try:
+                if df.shape[0] == 0:
+                    df = self.results
+                    coefs = self.coefs
+                else:
+                    df = df + self.results
+                    for key, items in coefs.items():
+                        coefs[key] = coefs[key] + self.coefs[key]
+            except ValueError:
+                n_iterations -= 1
+                continue
 
         df = df / n_iterations
+
         for key, items in coefs.items():
             coefs[key] = coefs[key] / n_iterations
         if write_to_csv:
@@ -765,8 +789,8 @@ class CTA_class:
 
         # create a list of pca variables to drop based on the settings, then drop them
         pca_vars_to_drop = list()
-        if hasattr(self, 'pca') and self.pca:
-            if hasattr(self, 'pet') and self.pet:
+        if (hasattr(self, 'pca') and self.pca) or (hasattr(self, 'ctapca') and self.ctapca):
+            if hasattr(self, 'pca') and self.pca:
                 pca_vars_to_drop += self.CTA_PCA_VARIABLES + self.PET_CTA_PCA_VARIABLES
             else:
                 pca_vars_to_drop += self.PCA_VARIABLES + self.PET_PCA_VARIABLES
@@ -776,10 +800,10 @@ class CTA_class:
             else:
                 pca_vars_to_drop += self.PET_PCA_VARIABLES + self.PET_CTA_PCA_VARIABLES
         else:
-            pca_vars_to_drop = self.PCA_VARIABLES + self.CTA_PCA_VARIABLES + self.PET_VARIABLES + self.PET_CTA_PCA_VARIABLES
+            pca_vars_to_drop = self.PCA_VARIABLES + self.CTA_PCA_VARIABLES + self.PET_CTA_PCA_VARIABLES + self.PET_PCA_VARIABLES
 
         # remove duplicates
-        pca_vars_to_drop = [n for n in pca_vars_to_drop if n not in pca_vars_to_drop]
+        pca_vars_to_drop = list(set(pca_vars_to_drop))
         df.drop(labels=pca_vars_to_drop, axis=1, inplace=True)
 
 
@@ -789,27 +813,38 @@ class CTA_class:
         if not time_dropped:
             df.drop(columns='passed time', inplace=True)
         df.drop(labels=[n for n in df.columns if 'event' in n], axis=1, inplace=True)
+        df.drop(labels=['early revasc'], axis=1, inplace=True)
+        df.drop(labels=['late revasc'], axis=1, inplace=True)
         return df
 
     @property
     def data_fill_na(self):
         df = self.data
         fill_dict = {n: df[n].median() for n in df.columns}
-        for label in self.CTA_VARIABLES:
-            if 'type of stenosis' in label:
-                fill_dict[label] = 0
-        for label in self.PET_VARIABLES:
-            if 'str_seg_' in label:
-                fill_dict[label] = 0
+
+        #for label in self.CTA_VARIABLES:
+        #    if 'type of stenosis' in label:
+        #        fill_dict[label] = 0
+        #for label in self.PET_VARIABLES:
+        #    if 'str_seg_' in label:
+        #        fill_dict[label] = 0
         df.fillna(fill_dict, inplace=True)
         return df
 
     @property
     def labels(self):
+        if hasattr(self, 'pred_revasc') and self.pred_revasc:
+            return self.original_data.loc[self.data.index, 'early revasc']
+        if hasattr(self, 'pred_late_revasc') and self.pred_late_revasc:
+            return self.original_data.loc[self.data.index, [self.label, 'late revasc']].max(axis=1)
         return self.original_data.loc[self.data.index, self.label]
 
     @property
     def labels_time_th(self):
+        if hasattr(self, 'pred_revasc') and self.pred_revasc:
+            return self.original_data.loc[self.data.index, 'early revasc']
+        if hasattr(self, 'pred_late_revasc') and self.pred_late_revasc:
+            return self.original_data.loc[self.data.index, [self.label, 'late revasc']].max(axis=1)
         return self.original_data.loc[self.data.index, self.label_time_th]
 
     @property
@@ -824,8 +859,8 @@ class CTA_class:
                 to_return += '_' + key
         if self.time:
             to_return += f'_{self.time}_years'
-        if self.label_time_th != self.label:
-            to_return += f'_inspect_{self.time_th}_years'
+        #if self.label_time_th != self.label:
+        #    to_return += f'_inspect_{self.time_th}_years'
         return to_return
 
     @property
@@ -884,41 +919,76 @@ class CTA_class:
             fpr, sens, th = roc_curve(self.labels.loc[X.index].astype(int), self.model_predictions[model_name])
             spec = 1-fpr
             th = youden(sens, spec, th)
-            self.binary_threshold[model_name] = th
+            if model_name not in self.binary_threshold.keys():
+                self.binary_threshold[model_name] = th
         pass
 
     @property
     def results(self):
-
-        result_df = pd.DataFrame(index=CTA_class.MODELS, columns=self.metric_names)
+        revasc_options = ['all', 'no revasc', 'with revasc']
+        multi_columns = pd.MultiIndex.from_product([revasc_options, self.metric_names])
+        result_df = pd.DataFrame(index=CTA_class.MODELS, columns=multi_columns)
         for model_name, pred in self.model_predictions.items():
-            for metric, _ in CTA_class.METRICS.items():
-                metric_f = getattr(self, metric)
-                result_df.at[model_name, CTA_class.METRICS[metric]] = metric_f(pred)
+            pred_as_srs = pd.Series(pred, index=self.X_test.index)
+            for option in revasc_options:
+                for metric, _ in CTA_class.METRICS.items():
+                    metric_f = getattr(self, metric)
+                    if option == 'all':
+                        result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_test, pred)
+                    if not (hasattr(self, 'pred_revasc') and self.pred_revasc):
+                        if option == 'no revasc':
+                            temp_pred = pred_as_srs.loc[self.original_data.loc[self.X_test.index, :].loc[self.original_data['early revasc'] <= 0].index]
+                            result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_test.loc[temp_pred.index], temp_pred)
+                        if option == 'with revasc':
+                            temp_pred = pred_as_srs.loc[self.original_data.loc[self.X_test.index, :].loc[self.original_data['early revasc'] >= 1].index]
+                            result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_test.loc[temp_pred.index], temp_pred)
         return result_df
 
-    def test_auc(self, given_pred):
-        return roc_auc_score(self.yth_test, given_pred)
+    @property
+    def training_results(self):
+        revasc_options = ['all', 'no revasc', 'with revasc']
+        multi_columns = pd.MultiIndex.from_product([revasc_options, self.metric_names])
+        result_df = pd.DataFrame(index=CTA_class.MODELS, columns=multi_columns)
+        for model_name, pred in self.model_predictions.items():
+            pred_as_srs = pd.Series(pred, index=self.X_train.index)
+            for option in revasc_options:
+                for metric, _ in CTA_class.METRICS.items():
+                    metric_f = getattr(self, metric)
+                    if option == 'all':
+                        result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_train, pred)
+                    if not (hasattr(self, 'pred_revasc') and self.pred_revasc):
+                        if option == 'no revasc':
+                            temp_pred = pred_as_srs.loc[
+                                self.original_data.loc[self.X_train.index, :].loc[self.original_data['early revasc'] <= 0].index]
+                            result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_train.loc[temp_pred.index], temp_pred)
+                        if option == 'with revasc':
+                            temp_pred = pred_as_srs.loc[
+                                self.original_data.loc[self.X_train.index, :].loc[self.original_data['early revasc'] >= 1].index]
+                            result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_train.loc[temp_pred.index], temp_pred)
+        return result_df
 
-    def sens(self, given_pred):
+    def test_auc(self, y_true, given_pred):
+        return roc_auc_score(y_true, given_pred)
+
+    def sens(self, y_true, given_pred):
 
         def youden(sens, spec):
             return sens[np.argmax(sens + spec)]
 
-        fpr, sens, _ = roc_curve(self.yth_test, given_pred)
+        fpr, sens, _ = roc_curve(y_true, given_pred)
         spec = 1 - fpr
         return youden(sens, spec)
 
-    def spec(self, given_pred):
+    def spec(self, y_true, given_pred):
 
         def youden(sens, spec):
             return spec[np.argmax(sens + spec)]
 
-        fpr, sens, _ = roc_curve(self.yth_test, given_pred)
+        fpr, sens, _ = roc_curve(y_true, given_pred)
         spec = 1 - fpr
         return youden(sens, spec)
 
-    def accuracy(self, given_pred):
+    def accuracy(self, y_true,  given_pred):
 
         def distance_from_one(val):
             return abs(1 - val)
@@ -926,11 +996,11 @@ class CTA_class:
         def youden(sens, spec, th):
             return th[np.argmax(sens + spec)]
 
-        fpr, sens, ths = roc_curve(self.yth_test, given_pred)
+        fpr, sens, ths = roc_curve(y_true, given_pred)
         spec = 1 - fpr
         th = youden(sens, spec, ths)
         pred_classes = given_pred >= th
-        vals = self.yth_test + pred_classes
+        vals = y_true + pred_classes
         total = 0
         for v in map(distance_from_one, vals):
             total += v
@@ -1053,7 +1123,7 @@ def iter_options(settings, n_start=1):
                 b_str = '0' + b_str
         has_data = False
         for j, (key, item) in zip(b_str, settings.items()):
-            if (key not in ['only_pet']) and bool(int(j)) > 0:
+            if (key not in ['only_pet', 'pred_revasc']) and bool(int(j)) > 0:
                 has_data = True
             settings[key] = bool(int(j))
 
@@ -1097,6 +1167,7 @@ if __name__ == "__main__":
 
     settings = {
         #'timed': False,
+        'only_pet': False,
         'cta': True,
         'pet': True,
         'pca': True,
@@ -1112,18 +1183,19 @@ if __name__ == "__main__":
 
     if train_models:
         curr_iter = 1
-        delete_folder_contents()
+        #delete_folder_contents()
         #delete_folder_contents(RESULTS_PET_DIR)
-        delete_folder_contents(COEFS_DIR)
+        #delete_folder_contents(COEFS_DIR)
         #delete_folder_contents(COEFS_PET_DIR)
         for opt in iter_options(settings, iteration_start):
             for train_t in training_times:
                 print(f'\n Starting settings no. {curr_iter} with {train_t} years.')
                 cta_data = None
                 if train_t == 0:
-                    cta_data = CTA_class(only_pet=False, all_labels=all_labels, **opt)
+
+                    cta_data = CTA_class(all_labels=all_labels, **opt)
                 else:
-                    cta_data = CTA_class(only_pet=False, all_labels=all_labels, time=train_t, **opt)
+                    cta_data = CTA_class(all_labels=all_labels, time=train_t, **opt)
                 cta_data()
 
             curr_iter += 1

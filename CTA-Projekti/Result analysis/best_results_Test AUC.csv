@@ -1,5 +1,7 @@
-,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version
-event,0.7532189532762175,0.8452651515151516,0.6357718422774867,0.6478575050709939,lasso,results_only_pet_pca_basic_3_years.csv
-cv event,-inf,,,,,
-timed event,-inf,,,,,
-timed cv event,-inf,,,,,
+,all,all,all,all,all,all,no revasc,no revasc,no revasc,no revasc,no revasc,no revasc,with revasc,with revasc,with revasc,with revasc,with revasc,with revasc
+,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version
+event,0.90417193426043,1.0,0.8070796460176991,0.8094405594405595,ridge,_pet_basic_pca_event 2 years.csv,0.9385790172642762,1.0,0.8665338645418327,0.8681102362204725,ridge,_pet_basic_pca_event 2 years.csv,0.9041666666666668,1.0,0.8666666666666667,0.875,linreg,_cta_ctapca_event 4 years.csv
+cv event,-inf,,,,,,-inf,,,,,,-inf,,,,,
+timed event,-inf,,,,,,-inf,,,,,,-inf,,,,,
+timed cv event,-inf,,,,,,-inf,,,,,,-inf,,,,,
+early revasc,-inf,,,,,,-inf,,,,,,-inf,,,,,

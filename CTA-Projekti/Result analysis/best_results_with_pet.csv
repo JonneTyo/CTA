@@ -1,0 +1,4 @@
+,all,all,all,all,all,all,no revasc,no revasc,no revasc,no revasc,no revasc,no revasc,with revasc,with revasc,with revasc,with revasc,with revasc,with revasc
+,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version,Test AUC,Sensitivity,Specificity,Accuracy,Model,Model Version
+all,0.8734485815602837,0.875,0.8244680851063829,0.8251748251748252,ridge,_cta_pca_event 1 years.csv,0.9063706563706564,0.8333333333333334,0.8918918918918919,0.8912213740458015,ridge,_cta_pca_event 1 years.csv,0.4347826086956522,1.0,0.28260869565217395,0.3125,ridge,_cta_pca_event 1 years.csv
+only pet,0.762962962962963,0.7777777777777778,0.7435897435897436,0.7450980392156863,lasso,_only_pet_pet_cta_event 2 years.csv,0.7451612903225806,0.6666666666666666,0.8064516129032258,0.8012422360248447,lasso,_only_pet_pet_cta_event 2 years.csv,0.7749999999999999,1.0,0.7,0.7209302325581395,lasso,_only_pet_pet_cta_event 2 years.csv

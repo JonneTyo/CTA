@@ -1,0 +1,6 @@
+,all,all,all,all,no revasc,no revasc,no revasc,no revasc,with revasc,with revasc,with revasc,with revasc
+,Test AUC,Sensitivity,Specificity,Accuracy,Test AUC,Sensitivity,Specificity,Accuracy,Test AUC,Sensitivity,Specificity,Accuracy
+lasso,0.9248928984978765,0.9419025157232701,0.8120447264064286,0.8242556917688267,,,,,,,,
+linreg,0.908374474251632,0.8916317260656881,0.835670130616939,0.8409369527145361,,,,,,,,
+SVR10,0.8654778769291015,0.7939552760307478,0.8579034823715677,0.8518826619964976,,,,,,,,
+ridge,0.9136509700590392,0.9009958071278824,0.8333069460729036,0.8396672504378287,,,,,,,,

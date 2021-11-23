@@ -9,8 +9,9 @@ from sklearn.decomposition import PCA
 
 class CTA_analyzer:
     metrics = ['Test AUC', 'Sensitivity', 'Specificity', 'Accuracy']
-    def __init__(self, results_dir, output_dir, **analyze_methods):
+    def __init__(self, results_dir, only_pet_dir, output_dir, **analyze_methods):
         self.results_dir = results_dir
+        self.only_pet_results_dir = only_pet_dir
         self.output_dir = output_dir
         self.__dict__.update(analyze_methods)
         self.analyze_methods = analyze_methods
@@ -27,18 +28,20 @@ class CTA_analyzer:
         label = 'event'
         label = 'cv ' + label if 'cv' in file_name else label
         label = 'timed ' + label if 'timed' in file_name else label
+        label = 'early revasc' if 'early_revasc' in file_name else label
         return label
 
     # Loops through all the results in results_dir and returns them as (dataframe, filename) tuple.
     # If how='any', at least one in "require" must be in filename. Else all of them need to be found.
     # The opposite is true for require_not
-    def gen_results(self, require=(), require_not=(), how='any', how_not='any'):
+    def gen_results(self, require=(), require_not=(), how='any', how_not='any', only_pet=False):
 
         if isinstance(require, str):
             require = [require]
         if isinstance(require_not, str):
             require_not = [require_not]
-        for f in os.listdir(self.results_dir):
+        dir = self.only_pet_results_dir if only_pet else self.results_dir
+        for f in os.listdir(dir):
 
             req_list = [n in f for n in require] if len(require) > 0 else [True]
             req_not_list = [n not in f for n in require_not] if len(require_not) > 0 else [True]
@@ -47,7 +50,7 @@ class CTA_analyzer:
             b_check = max(req_list) if how == 'any' else min(req_list)
             b_check = b_check and min(req_not_list) if how_not == 'any' else b_check and max(req_not_list)
             if b_check:
-                yield pd.read_csv(self.results_dir + '\\' + f, index_col=0, header=0), f
+                yield pd.read_csv(dir + '\\' + f, index_col=0, header=[0,1]), f
         pass
 
     # Returns the values of gen_result as a dict with filenames as key and dataframe as value.
@@ -66,18 +69,23 @@ class CTA_analyzer:
     # Returns a dataframe with events on indexes and for columns the metrics
     # of the best model for the label. "Best" is determined by argument measure_by.
     def get_best_models(self, dfs, measure_by='sensitivity'):
-        labels = ['event', 'cv event', 'timed event', 'timed cv event']
-        to_return = pd.DataFrame(index=labels, columns=CTA_analyzer.metrics)
-        to_return['Model'] = ""
-        to_return['Model Version'] = ""
-        to_return[measure_by] = -np.inf
+        labels = ['event']
+        indices = ['all', 'only pet']
+        revasc_options = ['all', 'no revasc', 'with revasc']
+        multi_columns = pd.MultiIndex.from_product([revasc_options, CTA_analyzer.metrics + ['Model', 'Model Version']])
+        to_return = pd.DataFrame(index=indices, columns=multi_columns)
+        #to_return['Model'] = ""
+        #to_return['Model Version'] = ""
+        to_return.loc[:, (slice(None), measure_by)] = -np.inf
+
         for df, file_name in dfs:
-            label = self.get_event_from_file_name(file_name)
+            pet_ind = 'only pet' if 'only_pet' in file_name else 'all'
             for ind, row in df.iterrows():
-                if to_return.at[label, measure_by] < row[measure_by]:
-                    to_return.loc[label, row.index] = row
-                    to_return.at[label, 'Model'] = ind
-                    to_return.at[label, 'Model Version'] = file_name
+                revasc_opt = 'all'
+                if to_return.at[pet_ind, (revasc_opt, measure_by)] < row.at[(revasc_opt, measure_by)]:
+                    to_return.loc[pet_ind, row.index] = row
+                    to_return.at[pet_ind, (slice(None), 'Model')] = ind
+                    to_return.at[pet_ind, (slice(None), 'Model Version')] = file_name
         return to_return
 
     # Creates multiple .csv files to self.output_dir
@@ -183,30 +191,47 @@ class CTA_analyzer:
 
     # creates .csv files where each row has the results of the best data selection method
     def get_best_results(self):
-        for m in ['Sensitivity', 'Test AUC']:
-            all_results = self.gen_results()
-            best_results = self.get_best_models(all_results, measure_by=m)
-            best_results.to_csv(self.output_dir + '\\' + 'best_results_' + m + '.csv')
+        best_results = None
+        for m in [False, True]:
+            ind = 'only pet' if m else 'all'
+            all_results = self.gen_results(require=[f'{"_only_pet" if m else ""}_pet', "_pca"], only_pet=m)
+            temp = self.get_best_models(all_results, measure_by='Test AUC')
+            if best_results is None:
+                best_results = pd.DataFrame(index=temp.index, columns=temp.columns, dtype='float64')
+            best_results.loc[ind, :] = temp.loc[ind, :]
+        best_results.to_csv(self.output_dir + '\\' + 'best_results_with_pet.csv')
         pass
 
     def PCA(self):
-        from CTA_class import CTA_class
-        settings = {'pet': False,
-                    'cta': True,
-                    'basic': True,
-                    'only_pet': True,
-                    'pca': False
-                    }
+        # from CTA_class import CTA_class
+        # settings = {'pet': True,
+        #             'cta': True,
+        #             'basic': True,
+        #             'only_pet': False,
+        #             'pca': False
+        #             }
+
         n_components = [i for i in range(2, 11)]
-        cta_data = CTA_class(**settings)
-        data = cta_data.data_fill_na
-        for n in n_components:
-            pca = PCA(n_components=n)
-            pca.fit(data)
-            components_mat = pd.DataFrame(data=pca.components_, columns=data.columns)
-            explained_variance_ratios = pd.Series(pca.explained_variance_ratio_, dtype='float64')
-            components_mat['explained variance ratios'] = explained_variance_ratios
-            components_mat.to_csv(self.output_dir + f'\\pca_matrix_{n}_components_only_pet_no_pet.csv')
+        orig_data = pd.read_csv("Training data filled.csv", index_col=0, dtype='float64')
+        orig_data = orig_data.iloc[:, :-6]
+        pet_data_indices = pd.read_csv("PET Training data filled.csv", index_col=0, dtype='float64').index
+
+        # whether to use the patients with PET data or not
+        use_pet_patients = [True, False]
+        # whether to use PET data or not
+        use_pet_data = [True, False]
+
+        for pet_patients in use_pet_patients:
+            temp_data = orig_data.loc[pet_data_indices, :] if pet_patients else orig_data
+            for pet_data in use_pet_data:
+                data = temp_data.iloc[:, :-20] if not pet_data else temp_data
+                for n in n_components:
+                    pca = PCA(n_components=n)
+                    pca.fit(data)
+                    components_mat = pd.DataFrame(data=pca.components_, columns=data.columns)
+                    explained_variance_ratios = pd.Series(pca.explained_variance_ratio_, dtype='float64')
+                    components_mat['explained variance ratios'] = explained_variance_ratios
+                    components_mat.to_csv(self.output_dir + f'\\pca_matrix_{n}_components{"_only_pet" if pet_patients else ""}{"_no_pet" if not pet_data else ""}.csv')
 
 
 
@@ -216,13 +241,14 @@ class CTA_analyzer:
         return len(os.listdir(self.results_dir))
 
 if __name__ == '__main__':
-    RESULTS_DIR = os.getcwd() + '\\Results'
+    RESULTS_DIR = os.getcwd() + '\\Final results'
+    ONLY_PET_RESULTS_DIR = os.getcwd() + '\\Final results only pet'
     OUTPUT_DIR = os.getcwd() + '\\Result analysis'
 
     to_analyze = {
-        #'best_results': CTA_analyzer.get_best_results,
+        'best_results': CTA_analyzer.get_best_results,
         #'differences': CTA_analyzer.get_setting_differences
-        'PCA': CTA_analyzer.PCA
+        #'PCA': CTA_analyzer.PCA
     }
-    analyzer = CTA_analyzer(RESULTS_DIR, OUTPUT_DIR, **to_analyze)
+    analyzer = CTA_analyzer(RESULTS_DIR, ONLY_PET_RESULTS_DIR, OUTPUT_DIR, **to_analyze)
     analyzer()

@@ -131,66 +131,232 @@ def plot_hist_passed_time(data):
     pass
 
 
+# loop through the result files and for each category in the dict results store the best results for each year based on Test AUC score.
+def get_best_test_auc_scores(df, only_pet_patients, use_pet_data, analyzer, times, min_time, max_time):
+
+    for t in times:
+
+        requires = []
+        requires_not = []
+        contains_pet_data_string = "only_pet_pet" if only_pet_patients else "pet"
+
+        if use_pet_data:
+            requires.extend([contains_pet_data_string, "_pca"])
+        else:
+            requires_not.extend([contains_pet_data_string, "_pca"])
+
+        for data, file_name in analyzer.gen_results(require=requires, require_not=requires_not, only_pet=only_pet_patients):
+
+            if min_time <= t <= max_time:
+                if not str(t) in file_name:
+                    continue
+            elif "years" in file_name:
+                continue
+            values = data.loc[:, "all"]
+            values = values.sort_values(by=['Test AUC', 'Sensitivity'], ascending=False)
+            if not (df.shape[1] > 0):
+                for ind, val in values.iloc[0, :].iteritems():
+                    df[ind] = 0
+            if values.iloc[0, 0] >= df.loc[t, "Test AUC"]:
+                df.loc[t, :] = values.iloc[0, :]
+    return df
+
+def get_best_overall_model(df, only_pet_patients, use_pet_data, analyzer, times, min_time, max_time, use_fixed_years=False):
+
+    # Setting up variables for the analyzer.gen_results method
+    requires = []
+    requires_not = []
+    contains_pet_data_string = "only_pet_pet" if only_pet_patients else "pet"
+    print("USING ONLY PET PATIENTS: " + str(only_pet_patients))
+    print("USING PET DATA: " + str(use_pet_data))
+    if use_pet_data:
+        requires.extend([contains_pet_data_string, "_pca"])
+    else:
+        requires_not.extend([contains_pet_data_string, "_pca"])
+
+    test_auc_values = pd.DataFrame(columns=times)
+    for data, file_name in analyzer.gen_results(require=requires, require_not=requires_not, only_pet=only_pet_patients):
+
+        # Figuring out the observation year and file name based on the file name
+        # If the fixed year and observation year don't match, move to the next file
+        t = None
+        file_ind = file_name[:file_name.index("_event")]
+        if "_event_" in file_name:
+            if "None" not in file_name:
+                continue
+            else:
+                t = times[-1]
+        elif "event " in file_name:
+            if "None" in file_name:
+                continue
+            if int(file_name[file_name.index(" years") - 1]) == int(file_name[-5]):
+                t = int(file_name[-5])
+            else:
+                continue
+
+        # save test AUC values of data in to the correct column (by time) if an index row has been created for this row, else append
+        if ("lasso", file_ind) in test_auc_values.index:
+            test_auc_values.loc[(slice(None), file_ind), t] = data[("all", "Test AUC")].values
+        else:
+            multi_index = pd.MultiIndex.from_product([data.index, [file_ind]], names=["Models", "Variables"])
+            temp = pd.DataFrame(index=multi_index, columns=test_auc_values.columns, dtype='float64')
+            temp[t] = data[("all", "Test AUC")].values
+            for _, values in temp.iterrows():
+                test_auc_values = test_auc_values.append(values)
+                test_auc_values.index = pd.MultiIndex.from_tuples(test_auc_values.index)
+
+    # calculate the Mean AUC values across all observation times and sort the dataframe based on these values
+    test_auc_values["Mean AUC"] = test_auc_values.mean(axis=1)
+    test_auc_values.sort_values("Mean AUC", inplace=True, ascending=False)
+    test_auc_values.reset_index(inplace=True)
+
+    # Pick the model with the highest Mean AUC and return a dataframe containing all the results of that model for every observation time
+
+    file_ind = test_auc_values.iloc[0, 1]
+    print("Best variables: " + file_ind)
+    model_ind = test_auc_values.iloc[0, 0]
+    print("Best model: " + model_ind)
+
+    for data, file_name in analyzer.gen_results(require=(file_ind), only_pet=only_pet_patients):
+
+        if not use_fixed_years:
+            # Figuring out the observation year and file name based on the file name
+            # If the fixed year and observation year don't match, move to the next file
+            t = None
+            if "None" in file_name:
+                if "_event_" not in file_name:
+                    continue
+                else:
+                    t = times[-1]
+            elif "event " in file_name:
+                if int(file_name[file_name.index(" years") - 1]) == int(file_name[-5]):
+                    t = int(file_name[-5])
+                else:
+                    continue
+
+                for ind, val in data["all"].loc[model_ind, :].items():
+                    if ind not in df.columns:
+                        df[ind] = 0
+                        df.loc[t, ind] = val
+        else:
+
+            # Figuring out the observation year and fixed year based on the file name
+            t = None
+            t_fixed = None
+
+            if "None" in file_name:
+                t_fixed = times[-1]
+            else:
+                t_fixed = int(file_name[-5])
+
+            if "_event_" in file_name:
+                t = times[-1]
+            else:
+                t = int(file_name[file_name.index(" years") - 1])
+
+            val = data["all"].at[model_ind, "Test AUC"]
+            if t_fixed not in df.columns:
+                df[t_fixed] = 0
+            df.loc[t, t_fixed] = val
+    return df
+
 def iterate_results(results_dir=CTA_class.RESULTS_DIR):
     for f in os.listdir(results_dir):
         if f.endswith(".csv"):
-            yield f, pd.read_csv(results_dir + '\\' + f, index_col=0, header=0)
+            yield f, pd.read_csv(results_dir + '\\' + f, index_col=0, header=[0,1])
 
-def plot_results_by_time(min_time=1, max_time=8, include_unlimited_time=True, metric=None, measure_by='Test AUC'):
+#takes in a dataframe with different models on indices and returns the col
+# with best linearly weighted averages
+def best_model_linear_weighting(df: pd.DataFrame):
 
-    results = {'basic': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
-               'cta': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
-               'pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
-               'cta and pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)])}
-    for dir in [CTA_class.RESULTS_PET_DIR, CTA_class.RESULTS_DIR]:
-        for file_name, data in iterate_results(dir):
+    to_return = pd.DataFrame(columns=[1])
+    weights = np.linspace(2, 1, num=8)
+    weights = np.append(weights, 1)
+    max_val = 0
+    for ind, col in df.iteritems():
+        curr_val = (weights*col).sum()
+        if max_val < curr_val:
+            max_val = curr_val
+            to_return.columns = [ind]
+            to_return[ind] = col
 
-            results_category = None
-            results_index = max_time + 1 if include_unlimited_time else 0
+    return to_return
 
-            if ('keep_pet' in file_name) and ('cta' not in file_name):
-                results_category = 'pet'
-            elif ('cta' in file_name) and ('keep_pet' not in file_name):
-                results_category = 'cta'
-            elif ('cta' in file_name) and ('keep_pet' in file_name):
-                results_category = 'cta and pet'
-            else:
-                results_category = 'basic'
 
-            if 'years' not in file_name:
-                if not include_unlimited_time:
-                    continue
-            else:
-                results_index = int(file_name[-11])
+def plot_results_by_time(min_time=1, max_time=8, include_unlimited_time=True, only_one_model=True):
 
-            best_model = data.idxmax()[measure_by]
-            if metric:
-                results[results_category].at[results_index, metric] = data.at[best_model, metric]
-            else:
-                for metr in data.columns:
-                    results[results_category].at[results_index, metr] = data.at[best_model, metr]
+    results = {'all patients using pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
+               'all patients no pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
+               'pet patients using pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)]),
+               'pet patients no pet': pd.DataFrame(index=[n for n in range(min_time, max_time + int(include_unlimited_time) + 1)])}
 
-        results['PET and CTA difference'] = results['pet'] - results['cta']
-        results['Additional value of PET'] = results['cta and pet'] - results['cta']
-        for key, df in results.items():
-            fig, ax = plt.subplots()
-            plt.grid(True)
-            for metr in df.columns:
-                ax.scatter([n for n in range(min_time, len(df.index) +1)], df[metr])
-                ax.plot(df[metr], label=metr)
+    from CTA_analyzer import CTA_analyzer
+
+    RESULTS_DIR = os.getcwd() + '\\Final results'
+    ONLY_PET_RESULTS_DIR = os.getcwd() + '\\Final results only pet'
+    OUTPUT_DIR = os.getcwd() + '\\Result analysis'
+
+    analyzer = CTA_analyzer(RESULTS_DIR, ONLY_PET_RESULTS_DIR, OUTPUT_DIR)
+    #revasc_options = ['all', 'no revasc', 'with revasc']
+    times = [n for n in range(min_time, max_time+1)]
+    if include_unlimited_time:
+        times.append(max_time + 2)
+        for df in results.values():
+            df.rename(index={max_time + 1: max_time + 2}, inplace=True)
+
+    for only_pet_patients in [True, False]:
+
+        for use_pet_data in [True, False]:
+            result_category = "pet patients" if only_pet_patients else "all patients"
+            result_category = result_category + " using pet" if use_pet_data else result_category + " no pet"
+            results[result_category] = get_best_overall_model(results[result_category], only_pet_patients, use_pet_data, analyzer, times, min_time, max_time, use_fixed_years=True)
+            #results[result_category] = get_best_test_auc_scores(results[result_category], only_pet_patients, use_pet_data, analyzer, times, min_time, max_time)
+
+
+
+        fig, axes = plt.subplots(nrows=1, ncols=3)
+        fig.set_size_inches(19.2, 6.4)
+        ax_pet, ax_no_pet, ax_diff = axes
+
+        suffix = "pet " if only_pet_patients else "all "
+        df_pet = suffix + "patients using pet"
+        df_pet = results[df_pet]
+        df_no_pet = suffix + "patients no pet"
+        df_no_pet = results[df_no_pet]
+
+
+        if only_one_model:
+            df_pet = best_model_linear_weighting(df_pet)
+            df_no_pet = best_model_linear_weighting(df_no_pet)
+
+        for metr_pet, metr_no_pet in zip(df_pet.columns, df_no_pet.columns):
+            ax_pet.scatter(df_pet.index, df_pet[metr_pet])
+            ax_no_pet.scatter(df_no_pet.index, df_no_pet[metr_no_pet])
+            ax_pet.plot(df_pet.index, df_pet[metr_pet], label=metr_pet)
+            ax_no_pet.plot(df_no_pet.index, df_no_pet[metr_no_pet], label=metr_no_pet)
+            ax_diff.scatter(df_pet.index, df_pet[metr_pet] - df_no_pet[metr_no_pet])
+            ax_diff.plot(df_pet.index, df_pet[metr_pet] - df_no_pet[metr_no_pet], label=f'{metr_pet} - {metr_no_pet}')
+
+        ticks = [n if n != max_time + 1 else "" for n in range(min_time, max_time + 1 + int(include_unlimited_time))]
+        if include_unlimited_time:
+            ticks.append("Unrestricted")
+
+        ax_titles = ["Using PET data", "Not using PET data", "Added value of PET data"]
+        for ax, title in zip(axes, ax_titles):
             ax.legend()
-            plt.title(key)
-            ticks = [n for n in range(min_time, max_time + 1)]
-            if include_unlimited_time:
-                ticks.append("No limit")
-            plt.xticks([n for n in range(min_time, max_time + int(include_unlimited_time) + 1)], labels=ticks)
-            plt.xlabel("Maximum observed time")
-            if key not in ('Additional value of PET', 'PET and CTA difference'):
-                plt.ylim((0.5, 1))
+            ax.set_xlabel("Maximum observed time")
+            ax.set_xticks([n for n in range(min_time, max_time + int(include_unlimited_time) + 2)])
+            ax.set_xticklabels(ticks)
+            ax.grid(True)
+            if ax != ax_diff:
+                ax.set_ylim((0.4, 1))
             else:
-                plt.ylim((-0.1, 0.1))
-            only_pet_txt = '_only_pet' if 'only pet' in dir else ""
-            plt.savefig(os.getcwd() + f"\\Plots\\results_{key}{only_pet_txt}.png")
+                ax.set_ylim((-0.2, 0.2))
+            ax.set_title(title)
+
+
+        fig.suptitle("Model results when using all patients" if not only_pet_patients else "Model results when using only PET patients")
+        plt.savefig(os.getcwd() + f"\\Plots\\best_TRAINING_model_{'only pet patients' if only_pet_patients else 'all patients'}_fixed_years_UNFINISHED.png")
 
 
 def plot_hist_PCA_values():
@@ -313,6 +479,7 @@ def plot_scatter_PCA_values():
         #plt.savefig(os.getcwd() + f'\\Plots\\PCA_event_occurrence_heatmap_no_abs_{t}_years.png', dpi=600)
     pass
 
+
 def plot_PCA_vs_no_pet():
     from matplotlib import cm
     from matplotlib import patches
@@ -366,10 +533,117 @@ def plot_PCA_vs_no_pet():
     pass
 
 
+def plot_results_grouped_by_revasc(min_time=1, max_time=8, include_unlimited_time=True, measure_by='Test AUC'):
+
+    indices = pd.Index([n for n in range(min_time, max_time + int(include_unlimited_time) + 1)])
+    revasc_options = ['all', 'no revasc', 'with revasc']
+    results_dirs = [CTA_class.RESULTS_DIR, CTA_class.RESULTS_PET_DIR]
+
+    # dictionary to contain different sets of data, e.g. all patients and only pet patients
+    data_sets = {'all': pd.DataFrame(index=indices, columns=revasc_options, dtype='float64'),
+                 'only pet': pd.DataFrame(index=indices, columns=revasc_options, dtype='float64'),
+                 'predict revasc': pd.DataFrame(index=indices, columns=['all', 'only pet'], dtype='float64')}
+
+    for dir in results_dirs:
+        for file_name, data in iterate_results(dir):
+
+            data_set = 'only pet' if 'only_pet' in file_name else 'all'
+            result_index = int(file_name[-11]) if 'years' in file_name else max_time + int(include_unlimited_time)
+            if 'early_revasc' not in file_name:
+                df = data_sets[data_set]
+                for revasc_option in revasc_options:
+                    max_value = data.loc[:, (revasc_option, measure_by)].max()
+                    if np.isnan(df.at[result_index, revasc_option]) or df.at[result_index, revasc_option] < max_value:
+                        df.at[result_index, revasc_option] = max_value
+            else:
+                df = data_sets['predict revasc']
+                max_value = data.loc[:, ('all', measure_by)].max()
+                if np.isnan(df.at[result_index, data_set]) or df.at[result_index, data_set] < max_value:
+                    df.at[result_index, data_set] = max_value
+
+    for key, data in data_sets.items():
+
+        plt.clf()
+        fig, ax = plt.subplots()
+        for col_name, vals in data.iteritems():
+            vals = pd.Series(vals, dtype='float64').dropna()
+            ax.plot(vals.index, vals, label=col_name)
+            ax.scatter(vals.index, vals)
+        plt.grid(True)
+        ax.set_ylim((0.5, 1))
+        ax.set_title(f'Test AUC scores for {key}')
+        plt.legend()
+        plt.savefig(os.getcwd() + f'\\Plots\\results_by_revasc_for_{key}', dpi=600)
+
+
+def plot_final_results_by_time():
+
+    fixed_years = ((7, 8), (3, 5))
+
+    for only_pet, (pet_fixed_year, no_pet_fixed_year) in zip([True, False], fixed_years):
+
+        data_dir = os.getcwd() + f'\\Final test results{" only pet" if only_pet else ""}'
+        fig, (ax_pet, ax_no_pet, ax_diff) = plt.subplots(1, 3)
+        fig.set_size_inches(19.2, 6.4)
+        all_axes = [ax_pet, ax_no_pet, ax_diff]
+        axes = [ax_pet, ax_no_pet]
+        data_pet, data_no_pet = None, None
+
+        for file in os.listdir(data_dir):
+            file_path = os.path.join(data_dir, file)
+            if "not" in file_path:
+                data_no_pet = pd.read_csv(file_path, index_col=0, header=[0,1])
+                data_no_pet = data_no_pet.astype('float64')
+            else:
+                data_pet = pd.read_csv(file_path, index_col=0, header=[0, 1])
+                data_pet = data_pet.astype('float64')
+
+        data_pet = data_pet['all']
+        data_no_pet = data_no_pet['all']
+
+        times_str = [n for n in range(1, 9)]
+        times_str.append("Unrestricted")
+        times_ind = [n for n in range(1, 9)]
+        times_ind.append(10)
+
+        for (metr_pet, vals_pet), (metr_no_pet, vals_no_pet) in zip(data_pet.iteritems(), data_no_pet.iteritems()):
+            ax_pet.plot(times_ind, vals_pet, label=metr_pet)
+            ax_pet.scatter(times_ind, vals_pet)
+            ax_no_pet.plot(times_ind, vals_no_pet, label=metr_no_pet)
+            ax_no_pet.scatter(times_ind, vals_no_pet)
+            if metr_pet == "Test AUC":
+                ax_diff.plot(times_ind, vals_pet - vals_no_pet, label=metr_pet)
+                ax_diff.scatter(times_ind, vals_pet - vals_no_pet)
+
+        for ax in all_axes:
+            ax.legend()
+            ax.grid(True)
+            ax.set_xticks(times_ind)
+            ax.set_xticklabels(times_str)
+
+        for ax in axes:
+            ax.set_ylim((0.4, 1))
+
+        ax_diff.set_ylim((-0.2, 0.2))
+        ax_diff.set_ylabel("Difference")
+
+        ax_pet.set_title(f"Using PET data \n trained for {pet_fixed_year} years")
+        ax_no_pet.set_title(f"Not using PET data \n trained for {no_pet_fixed_year} years")
+        ax_diff.set_title("Added value of using PET data")
+
+        fig.suptitle(f"Results for {'only the PET patients' if only_pet else 'all patients'}")
+
+        plt.savefig(f'Plots\\Final test results for {"PET" if only_pet else "all"} patients', dpi=600)
+
+    pass
+
+
 if __name__ == "__main__":
 
     #plot_hist_PCA_values()
     #plot_scatter_PCA_values()
-    plot_PCA_vs_no_pet()
+    #plot_results_by_time()
+    #plot_results_grouped_by_revasc()
+    plot_final_results_by_time()
 
     pass
