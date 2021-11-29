@@ -1,35 +1,35 @@
 ,0
-sex,-0.0005813305872618701
-age,0.0014765881023595987
-bmi,-0.0
-smoking,0.000592790787434625
-diabetes,0.00021127205788412702
+sex,-0.0004330218010966877
+age,0.0024051920117675973
+bmi,-0.0004832325123187023
+smoking,0.0009330233598289075
+diabetes,0.0003291259719171165
 hypertension,-0.0
-dyslipidemia,-0.0
-chestpain,0.0
-dyspnea,-0.0017826606661616288
-lm - type of stenosis,0.001168754805785992
-lada - type of stenosis,-0.0008782961174131635
-ladb - type of stenosis,0.0
-ladc - type of stenosis,-0.001089286933337388
-d1 - type of stenosis,-0.0
-d2 - type of stenosis,-0.0001380326906281134
-lcxa - type of stenosis,0.00030302965233016917
-lcxb - type of stenosis,1.3644388746023118e-05
-lcxc -type of stenosis,0.00010704065769644839
-lpd - type of stenosis,-0.0003835517786000154
+dyslipidemia,0.0
+chestpain,-3.8103113115041264e-05
+dyspnea,-0.0005719506251447189
+lm - type of stenosis,0.0010444354897771832
+lada - type of stenosis,-0.0002722197491738544
+ladb - type of stenosis,-0.0
+ladc - type of stenosis,-0.0003548617048731807
+d1 - type of stenosis,0.0
+d2 - type of stenosis,-2.1456730727868716e-05
+lcxa - type of stenosis,0.0
+lcxb - type of stenosis,0.00031895545413619
+lcxc -type of stenosis,0.0007471467145148008
+lpd - type of stenosis,-0.0
 lom1 - type of stenosis,-0.0
-lom2 - type of stenosis,-6.96959892727047e-05
-im - type of stenosis,-3.759691156933402e-05
+lom2 - type of stenosis,-0.00017942115018945547
+im - type of stenosis,-0.0004571321210412816
 lpl - type of stenosis,-0.0
-rcaa - type of stenosis,0.0
-rcab - type of stenosis,0.00047067999519710766
-rcac - type of stenosis,6.122164179683166e-05
-rpd - type of stenosis,0.0
-rpl - type of stenosis,-0.0
+rcaa - type of stenosis,0.0002846391792814753
+rcab - type of stenosis,0.0004207218447109393
+rcac - type of stenosis,0.0
+rpd - type of stenosis,-5.513156267373974e-05
+rpl - type of stenosis,0.0006961568014633316
 stenosis type 1 count,0.0
-stenosis type 2 count,-0.0
-max cta type,0.0011112482395979643
+stenosis type 2 count,-1.2440221639450314e-05
+max cta type,0.0
 max high risk cta type,-0.0
-sis,-0.000291515032653921
-CTA PCA1,0.00047776787253999125
+sis,-0.0007494456324724693
+PET CTA PCA1,0.0

@@ -1,12 +1,11 @@
 ,0
 sex,-0.0
-age,0.00021396021183054049
+age,0.0
 bmi,-0.0
-smoking,-0.0
+smoking,0.0
 diabetes,0.0
 hypertension,-0.0
 dyslipidemia,-0.0
-chestpain,0.0
-dyspnea,-0.0
-PCA1,0.00040019355096315896
-PCA2,0.0
+chestpain,-0.0
+dyspnea,-0.0001581450290571794
+CTA PCA1,0.000517457275965791

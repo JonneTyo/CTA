@@ -70,6 +70,7 @@ X_train_pet, X_test_pet, y_train_pet, y_test_pet = get_similar_train_test_splits
 X_train_no_pet, X_test_no_pet, y_train_no_pet, y_test_no_pet = get_similar_train_test_splits(all_data.loc[no_pet_indices, :],
                                                                                              cta_no_pet.original_data.loc[no_pet_indices, events])
 
+
 X_train = pd.concat([X_train_no_pet, X_train_pet])
 X_test = pd.concat([X_test_no_pet, X_test_pet])
 y_train = pd.concat([y_train_no_pet, y_train_pet])
@@ -144,6 +145,8 @@ def float_to_binary_pred(model_predictions, bin_ths):
 
 for model_opt, (fixed_year, opt, model_name) in final_models.items():
 
+
+
     only_pet = pet_patients_str in model_opt
     event_str = f'event {fixed_year} years'
     cta = CTA_class(**opt)
@@ -155,14 +158,29 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
     if only_pet:
         cta.X_train, cta.X_test, cta.y_train, cta.y_test = X_train_pet.loc[:, cta.data.columns], X_test_pet.loc[:, cta.data.columns], y_train_pet.loc[:, event_str].astype(int), y_test_pet.loc[:, event_str].astype(int)
 
+    categories = ['value', 'binary']
+    training_predictions = pd.DataFrame(index=cta.X_train.index, columns=categories)
+    test_predictions = pd.DataFrame(index=cta.X_test.index, columns=categories)
     cta.train_models()
     cta.predict(cta.X_train)
     bin_ths = cta.binary_threshold
+    training_predictions['value'] = cta.model_predictions[model_name]
+    training_predictions['binary'] = float_to_binary_pred(cta.model_predictions, bin_ths)[model_name]
     cta.predict(cta.X_test)
+    test_predictions['value'] = cta.model_predictions[model_name]
+    test_predictions['binary'] = float_to_binary_pred(cta.model_predictions, bin_ths)[model_name]
+
+    training_predictions.to_csv(f"Predictions\\Training predictions {cta.settings_to_str}.csv")
+    test_predictions.to_csv(f'Predictions\\Test predictions {cta.settings_to_str}.csv')
+
+
     cta.model_predictions = float_to_binary_pred(cta.model_predictions, bin_ths)
     results = pd.DataFrame(index=[n if n else 'Unrestricted' for n in obs_years], columns=cta.results.columns)
     for obs_year in obs_years:
+
         obs_year_str = f'event {obs_year} years' if obs_year else f'event'
+
+
         obs_year_ind = obs_year if obs_year else "Unrestricted"
         cta.label = obs_year_str
         cta.y_test = y_test.loc[:, obs_year_str].astype(int) if not only_pet else y_test_pet.loc[:, obs_year_str].astype(int)

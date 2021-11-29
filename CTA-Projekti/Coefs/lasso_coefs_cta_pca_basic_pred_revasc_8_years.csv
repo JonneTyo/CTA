@@ -1,0 +1,35 @@
+,0
+sex,-0.0
+age,-0.0006189574663500294
+bmi,-0.0
+smoking,0.0
+diabetes,0.0
+hypertension,0.0001717421030618602
+dyslipidemia,-0.0
+chestpain,0.001039477764383396
+dyspnea,0.0
+lm - type of stenosis,-0.0
+lada - type of stenosis,0.0
+ladb - type of stenosis,0.0
+ladc - type of stenosis,0.0
+d1 - type of stenosis,-0.0
+d2 - type of stenosis,0.0
+lcxa - type of stenosis,0.0
+lcxb - type of stenosis,0.00015823019237802763
+lcxc -type of stenosis,-0.00043710544020026873
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,-0.0002755731218985373
+lom2 - type of stenosis,6.601086123818941e-05
+im - type of stenosis,-0.0
+lpl - type of stenosis,-0.0
+rcaa - type of stenosis,0.0
+rcab - type of stenosis,0.0
+rcac - type of stenosis,0.0
+rpd - type of stenosis,-0.0
+rpl - type of stenosis,0.00011271775261285483
+stenosis type 1 count,0.0
+stenosis type 2 count,-0.0
+max cta type,0.001526549942228588
+max high risk cta type,0.0
+sis,-0.0021607272409424503
+CTA PCA1,0.001081631307951174

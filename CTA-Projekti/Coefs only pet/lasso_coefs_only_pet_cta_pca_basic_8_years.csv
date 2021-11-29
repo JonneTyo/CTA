@@ -1,36 +1,35 @@
 ,0
-sex,-0.0
-age,0.00063902567446836
-bmi,-0.0
-smoking,0.0011632624245913885
-diabetes,0.000379100295736602
+sex,-0.000869597874595534
+age,0.0018962140334389526
+bmi,0.00034904667853838113
+smoking,0.0007823450907023495
+diabetes,4.711488439588601e-05
 hypertension,-0.0
-dyslipidemia,-0.00026979657379940745
+dyslipidemia,-0.0
 chestpain,0.0
-dyspnea,-0.0006423173568145264
-lm - type of stenosis,0.0007274920551475084
-lada - type of stenosis,-0.0008279493809794843
-ladb - type of stenosis,0.00039394353634025433
-ladc - type of stenosis,-0.000602646741589777
-d1 - type of stenosis,-0.0004019556256245582
-d2 - type of stenosis,-0.0
-lcxa - type of stenosis,0.0
-lcxb - type of stenosis,0.00022473513708459766
-lcxc -type of stenosis,0.0001990880214724522
-lpd - type of stenosis,-0.0003093353195077853
-lom1 - type of stenosis,-0.00014280566924128988
-lom2 - type of stenosis,-0.00011674353980220577
-im - type of stenosis,-0.0001391269381978712
-lpl - type of stenosis,-0.0
+dyspnea,-0.0008023311131311469
+lm - type of stenosis,0.0002524283757830865
+lada - type of stenosis,-0.0011871034367923361
+ladb - type of stenosis,0.0
+ladc - type of stenosis,-0.00023500343835189988
+d1 - type of stenosis,-0.0001968927735903771
+d2 - type of stenosis,0.0
+lcxa - type of stenosis,4.622385444036293e-05
+lcxb - type of stenosis,0.0
+lcxc -type of stenosis,0.00024479148415529816
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,0.0
+lom2 - type of stenosis,-0.0002059701959110446
+im - type of stenosis,-7.452583088547385e-05
+lpl - type of stenosis,0.0
 rcaa - type of stenosis,0.0
-rcab - type of stenosis,0.0010244772468766127
-rcac - type of stenosis,0.0
-rpd - type of stenosis,0.0
-rpl - type of stenosis,0.0
+rcab - type of stenosis,0.00030461454125560027
+rcac - type of stenosis,-0.0
+rpd - type of stenosis,-0.0
+rpl - type of stenosis,0.00011180198029714505
 stenosis type 1 count,0.0
 stenosis type 2 count,-0.0
-max cta type,4.263133508455323e-05
+max cta type,0.00017064905719690096
 max high risk cta type,-0.0
-sis,-0.0
-PCA1,0.0005845834083915088
-PCA2,0.0003654968942116899
+sis,-0.0009190004841168181
+PET CTA PCA1,0.00034088884249932575

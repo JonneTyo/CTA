@@ -1,23 +1,23 @@
 ,0
-str_seg_1,0.00015144630550724256
-str_seg_4,0.0
-str_seg_5,0.0
-str_seg_6,0.0
+str_seg_1,0.0
+str_seg_4,-0.0
+str_seg_5,-0.00016402686431057
+str_seg_6,-0.0
 str_seg_7,0.0
 str_seg_8,-0.0
-str_seg_9,0.0
-str_seg_10,0.0003744352372889046
+str_seg_9,0.0011525717072905354
+str_seg_10,0.0008098576211068142
 str_seg_11,-0.0
-str_seg_12,0.0
+str_seg_12,-0.0
 str_seg_13,-0.0
 str_seg_14,-0.0
 str_seg_15,0.0
-str_seg_16,-0.00045335151583853015
-str_seg_17,-0.00028958719058170347
+str_seg_16,-0.0
+str_seg_17,-0.0005022864142832085
 max_str_seg,-0.0
-max_lad_str,-0.0
-max_lcx_str,0.0
+max_lad_str,0.0
+max_lcx_str,-0.0
 max_rca_str,-0.0
-non-zero pet segs,0.0
-PCA1,0.0006791098288432122
-PCA2,0.000890847227279891
+non-zero pet segs,-0.0
+PET PCA1,0.0005233949043573359
+PET PCA2,0.0003374393231139425

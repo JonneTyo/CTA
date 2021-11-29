@@ -1,25 +1,25 @@
 ,0
-lm - type of stenosis,0.0020722608674942442
-lada - type of stenosis,-0.0016501009942179532
-ladb - type of stenosis,0.0007081294521331811
-ladc - type of stenosis,-0.0008726924071711179
-d1 - type of stenosis,3.457841099833474e-05
-d2 - type of stenosis,-0.00038631737806429846
-lcxa - type of stenosis,9.873231960638899e-05
-lcxb - type of stenosis,0.0004908794915325177
-lcxc -type of stenosis,0.000655137626127429
-lpd - type of stenosis,-0.0004998255381779171
-lom1 - type of stenosis,0.0003773758645353994
-lom2 - type of stenosis,-0.0001300864157464923
-im - type of stenosis,0.0003583127783634514
-lpl - type of stenosis,-7.00607683846146e-05
-rcaa - type of stenosis,0.0005185271032656802
-rcab - type of stenosis,0.00042027323946424783
-rcac - type of stenosis,9.735573072782767e-05
-rpd - type of stenosis,7.216567971868044e-05
-rpl - type of stenosis,0.000193813615555819
-stenosis type 1 count,-5.146567373457247e-05
-stenosis type 2 count,-0.0002990338588019166
-max cta type,0.002732972080750202
-max high risk cta type,-0.001148522300555761
-sis,-0.0005861018741702841
+lm - type of stenosis,0.0018695813945152902
+lada - type of stenosis,-0.0001378879056269099
+ladb - type of stenosis,8.920959791005878e-05
+ladc - type of stenosis,-0.0005502462544557969
+d1 - type of stenosis,6.938594164281343e-05
+d2 - type of stenosis,-4.229124134191461e-05
+lcxa - type of stenosis,0.0002627545702204664
+lcxb - type of stenosis,0.0011285350400899526
+lcxc -type of stenosis,3.0554875449337974e-05
+lpd - type of stenosis,-0.0004786859134102122
+lom1 - type of stenosis,-8.220467595544128e-05
+lom2 - type of stenosis,1.115660914633624e-06
+im - type of stenosis,0.0005169628997437676
+lpl - type of stenosis,-0.00020380454355846365
+rcaa - type of stenosis,0.00143883738588819
+rcab - type of stenosis,0.0009285683453386107
+rcac - type of stenosis,-0.000827642796601097
+rpd - type of stenosis,-6.755698599955617e-05
+rpl - type of stenosis,-7.105678481624257e-05
+stenosis type 1 count,-0.00034246951857382736
+stenosis type 2 count,-2.856988771296146e-05
+max cta type,0.0008225469613454834
+max high risk cta type,-0.0017286104894187458
+sis,-0.0007637230735627363

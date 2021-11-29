@@ -1,0 +1,47 @@
+,0
+lm - type of stenosis,0.0
+lada - type of stenosis,0.0
+ladb - type of stenosis,4.839648980165833e-07
+ladc - type of stenosis,-0.0009543078749990377
+d1 - type of stenosis,-0.00023381662258782293
+d2 - type of stenosis,-0.000518273969791448
+lcxa - type of stenosis,0.0
+lcxb - type of stenosis,0.0
+lcxc -type of stenosis,0.0007670388774564895
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,0.0
+lom2 - type of stenosis,-5.6250327473436956e-05
+im - type of stenosis,0.0005539878229575302
+lpl - type of stenosis,0.0
+rcaa - type of stenosis,0.0
+rcab - type of stenosis,0.001443023388298523
+rcac - type of stenosis,2.2014990828512363e-05
+rpd - type of stenosis,0.00015866965435999358
+rpl - type of stenosis,0.0
+str_seg_1,-0.0
+str_seg_4,0.0
+str_seg_5,0.0
+str_seg_6,0.0
+str_seg_7,-0.0
+str_seg_8,-0.0008525173121816289
+str_seg_9,1.1704683113227973e-05
+str_seg_10,0.0
+str_seg_11,0.0
+str_seg_12,0.0
+str_seg_13,-0.0009224120877728605
+str_seg_14,-0.000313899777950388
+str_seg_15,-0.0
+str_seg_16,-0.0014006200823115215
+str_seg_17,-0.0
+stenosis type 1 count,-0.0
+stenosis type 2 count,0.0
+max cta type,0.0002222085441449988
+max high risk cta type,5.557867516221579e-05
+sis,-0.0
+max_str_seg,9.043750330074657e-05
+max_lad_str,-0.0
+max_lcx_str,0.0
+max_rca_str,0.0
+non-zero pet segs,0.0
+PET PCA1,0.0012707434568520171
+PET PCA2,0.00033048095727365023

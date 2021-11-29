@@ -10,12 +10,12 @@ str_seg_10,0.0
 str_seg_11,0.0
 str_seg_12,-0.0
 str_seg_13,-0.0
-str_seg_14,0.0
+str_seg_14,-0.0
 str_seg_15,0.0
 str_seg_16,-0.0
 str_seg_17,-0.0
 max_str_seg,0.0
 max_lad_str,0.0
-max_lcx_str,0.0
-max_rca_str,0.0015565123831349115
+max_lcx_str,0.0002452162581308776
+max_rca_str,0.0015039416481158392
 non-zero pet segs,0.0

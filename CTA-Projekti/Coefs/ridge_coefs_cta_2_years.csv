@@ -1,25 +1,25 @@
 ,0
-lm - type of stenosis,-4.194674698352823e-05
-lada - type of stenosis,-0.0002035384383685432
-ladb - type of stenosis,0.00046085642121827347
-ladc - type of stenosis,-0.0005412201232035306
-d1 - type of stenosis,0.00029040129325960434
-d2 - type of stenosis,-0.00024701141294058103
-lcxa - type of stenosis,-5.043655742791159e-05
-lcxb - type of stenosis,-0.00014452787526394287
-lcxc -type of stenosis,0.0004995424863332491
-lpd - type of stenosis,9.344714875294014e-05
-lom1 - type of stenosis,0.0002165447433041886
-lom2 - type of stenosis,5.6940872079922755e-06
-im - type of stenosis,0.0001245850466947669
-lpl - type of stenosis,-0.0005487917111694244
-rcaa - type of stenosis,0.0003801286479690934
-rcab - type of stenosis,0.0006926558306841269
-rcac - type of stenosis,-0.00030691895387207214
-rpd - type of stenosis,0.00043372327742886445
-rpl - type of stenosis,-0.000576948736763017
-stenosis type 1 count,7.827498173128335e-05
-stenosis type 2 count,-0.0004417792684460869
-max cta type,0.0003604149520157766
-max high risk cta type,0.00010565170949149619
-sis,-0.0005423520145000965
+lm - type of stenosis,3.8328301612722756e-05
+lada - type of stenosis,-7.355583593999149e-06
+ladb - type of stenosis,8.186756773347837e-05
+ladc - type of stenosis,-0.0005608190145472466
+d1 - type of stenosis,2.577609212918593e-05
+d2 - type of stenosis,2.7080000326918585e-05
+lcxa - type of stenosis,-0.00026587092307714876
+lcxb - type of stenosis,-6.0498158319904105e-05
+lcxc -type of stenosis,0.0005841630577792332
+lpd - type of stenosis,1.7712708594214933e-05
+lom1 - type of stenosis,0.0001491569539930953
+lom2 - type of stenosis,0.0002631472216856992
+im - type of stenosis,0.00026745728137081795
+lpl - type of stenosis,-0.00030886312941119567
+rcaa - type of stenosis,0.000560309888124195
+rcab - type of stenosis,0.0006059906155521353
+rcac - type of stenosis,-0.0001912041419548156
+rpd - type of stenosis,0.0005692812310303944
+rpl - type of stenosis,-0.0003993912697516107
+stenosis type 1 count,6.163413082619276e-05
+stenosis type 2 count,-0.0004228174866582446
+max cta type,0.0005230182198284414
+max high risk cta type,-4.4536676829748804e-05
+sis,-0.000546919384141513

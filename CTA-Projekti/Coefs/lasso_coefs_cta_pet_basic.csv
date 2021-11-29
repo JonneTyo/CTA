@@ -1,54 +1,54 @@
 ,0
-sex,-5.4567033692088285e-05
-age,0.001179866995308547
-bmi,-0.0
-smoking,0.00010784681524911443
+sex,-0.0
+age,0.0010231471222983634
+bmi,-6.79312610893718e-05
+smoking,0.00014441902162390033
 diabetes,0.0
-hypertension,-0.0007635241203229825
-dyslipidemia,-0.0
-chestpain,8.092855103788761e-05
-dyspnea,-0.000455837579461828
-lm - type of stenosis,0.0012480543109166654
+hypertension,-0.00036039836006219057
+dyslipidemia,0.0
+chestpain,-0.0
+dyspnea,-0.0005342672484241648
+lm - type of stenosis,0.0006807369170656937
 lada - type of stenosis,0.0
-ladb - type of stenosis,0.0008384589334866334
+ladb - type of stenosis,0.00020831231484451417
 ladc - type of stenosis,0.0
-d1 - type of stenosis,-0.0
+d1 - type of stenosis,0.0
 d2 - type of stenosis,0.0
-lcxa - type of stenosis,0.0005649522530782252
+lcxa - type of stenosis,0.0005155318125859317
 lcxb - type of stenosis,0.0
-lcxc -type of stenosis,-0.0
+lcxc -type of stenosis,0.0
 lpd - type of stenosis,-0.0
-lom1 - type of stenosis,-0.0
+lom1 - type of stenosis,-0.00010297456179049624
 lom2 - type of stenosis,-0.0
 im - type of stenosis,0.0
 lpl - type of stenosis,-0.0
-rcaa - type of stenosis,8.635551969560871e-05
-rcab - type of stenosis,7.176276452038441e-05
+rcaa - type of stenosis,4.4739677205222874e-05
+rcab - type of stenosis,0.00011403241260856192
 rcac - type of stenosis,0.0
-rpd - type of stenosis,9.603028003461106e-06
-rpl - type of stenosis,8.98415381804436e-05
+rpd - type of stenosis,0.0
+rpl - type of stenosis,0.0
 str_seg_1,0.0
 str_seg_4,0.0
 str_seg_5,0.0
 str_seg_6,0.0
 str_seg_7,0.0
-str_seg_8,0.0
+str_seg_8,-0.0
 str_seg_9,0.0
-str_seg_10,0.00043265404168295676
+str_seg_10,0.0
 str_seg_11,0.0
 str_seg_12,0.0
 str_seg_13,0.0
-str_seg_14,-0.0
-str_seg_15,0.0
+str_seg_14,0.0
+str_seg_15,0.0002012865585655727
 str_seg_16,0.0
 str_seg_17,-0.0
 stenosis type 1 count,-0.0
 stenosis type 2 count,0.0
-max cta type,0.0009485918782772964
+max cta type,0.0014200081597628986
 max high risk cta type,0.0
 sis,-0.0
 max_str_seg,0.0
 max_lad_str,0.0
-max_lcx_str,0.00022417650857112838
-max_rca_str,0.00010204268993514478
+max_lcx_str,0.0005392496221557825
+max_rca_str,0.0005204245466639198
 non-zero pet segs,0.0

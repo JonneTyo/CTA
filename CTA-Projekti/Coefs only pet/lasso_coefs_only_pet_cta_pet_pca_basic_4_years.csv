@@ -1,56 +1,56 @@
 ,0
-sex,-0.0
-age,0.0009219956249580125
+sex,0.0
+age,0.001146645443720575
 bmi,-0.0
-smoking,0.0
+smoking,0.0003225094219776988
 diabetes,0.0
 hypertension,-0.0
-dyslipidemia,0.0
-chestpain,-0.0
-dyspnea,-0.0006225692308245424
-lm - type of stenosis,0.0
+dyslipidemia,-0.0
+chestpain,-5.99236752252961e-05
+dyspnea,-0.0004541831892608473
+lm - type of stenosis,0.0004976169776822819
 lada - type of stenosis,-0.0
 ladb - type of stenosis,0.0
-ladc - type of stenosis,-0.0003798937943384908
-d1 - type of stenosis,0.00037942338599695927
-d2 - type of stenosis,0.0
+ladc - type of stenosis,-0.0005186144794154054
+d1 - type of stenosis,0.00018820489507960007
+d2 - type of stenosis,-0.00037204471989086874
 lcxa - type of stenosis,0.0
 lcxb - type of stenosis,-0.0
-lcxc -type of stenosis,0.0003014474044859507
-lpd - type of stenosis,0.0
-lom1 - type of stenosis,0.0
-lom2 - type of stenosis,0.0
+lcxc -type of stenosis,0.0
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,-0.0
+lom2 - type of stenosis,-0.00016414137731777273
 im - type of stenosis,-0.0
-lpl - type of stenosis,-0.00016703743406422104
-rcaa - type of stenosis,0.0
-rcab - type of stenosis,0.00043295707145389617
-rcac - type of stenosis,0.0
-rpd - type of stenosis,0.00030578961005795185
+lpl - type of stenosis,0.00014774340195563445
+rcaa - type of stenosis,-0.0
+rcab - type of stenosis,0.001009130974039032
+rcac - type of stenosis,-0.0
+rpd - type of stenosis,0.00019996477365872819
 rpl - type of stenosis,-0.0
 str_seg_1,-0.0
-str_seg_4,0.0
-str_seg_5,0.0
+str_seg_4,0.0004758261990395905
+str_seg_5,-0.0
 str_seg_6,-0.0
 str_seg_7,-0.0
 str_seg_8,-0.0
 str_seg_9,0.0
-str_seg_10,0.0
+str_seg_10,0.00015347944586976302
 str_seg_11,-0.0
-str_seg_12,-0.0018713158069081268
-str_seg_13,-0.00024291271746958794
+str_seg_12,-0.0
+str_seg_13,-1.116193541805646e-05
 str_seg_14,0.0
-str_seg_15,0.0024532081695618334
+str_seg_15,0.0012325415429156926
 str_seg_16,-0.0
 str_seg_17,-0.0
-stenosis type 1 count,-0.0
+stenosis type 1 count,0.0
 stenosis type 2 count,-0.0
 max cta type,0.0
 max high risk cta type,-0.0
 sis,-0.0
 max_str_seg,0.0
-max_lad_str,0.0
+max_lad_str,-0.0
 max_lcx_str,0.0
-max_rca_str,0.00048558991519321486
-non-zero pet segs,0.0
-PCA1,0.00019259039488532466
-PCA2,3.133326555999944e-05
+max_rca_str,0.0007766701771961076
+non-zero pet segs,-0.0
+PET PCA1,0.0
+PET PCA2,7.07146978130791e-05

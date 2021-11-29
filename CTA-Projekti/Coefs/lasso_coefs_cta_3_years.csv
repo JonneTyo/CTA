@@ -1,8 +1,8 @@
 ,0
-lm - type of stenosis,2.822086059044187e-05
+lm - type of stenosis,0.00012836788187354608
 lada - type of stenosis,0.0
-ladb - type of stenosis,0.0002924959409929192
-ladc - type of stenosis,-0.0
+ladb - type of stenosis,3.7658762663825185e-05
+ladc - type of stenosis,0.0
 d1 - type of stenosis,0.0
 d2 - type of stenosis,0.0
 lcxa - type of stenosis,0.0
@@ -10,16 +10,16 @@ lcxb - type of stenosis,0.0
 lcxc -type of stenosis,0.0
 lpd - type of stenosis,0.0
 lom1 - type of stenosis,-0.0
-lom2 - type of stenosis,0.0
+lom2 - type of stenosis,-0.0
 im - type of stenosis,0.0
-lpl - type of stenosis,-0.0
-rcaa - type of stenosis,0.00034082661297666895
+lpl - type of stenosis,0.0
+rcaa - type of stenosis,0.00011292941519197463
 rcab - type of stenosis,0.0
 rcac - type of stenosis,0.0
-rpd - type of stenosis,9.421667672397591e-05
-rpl - type of stenosis,0.0
+rpd - type of stenosis,0.0
+rpl - type of stenosis,-0.0
 stenosis type 1 count,-0.0
 stenosis type 2 count,0.0
-max cta type,0.00033759716508187604
+max cta type,0.00018815311458242903
 max high risk cta type,0.0
-sis,-0.0004580739408067809
+sis,-0.0012693593805065643

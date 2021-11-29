@@ -2,16 +2,16 @@
 sex,0.0
 age,0.0
 bmi,-0.0
-smoking,0.0
+smoking,-0.0
 diabetes,0.0
 hypertension,-0.0
-dyslipidemia,0.0
+dyslipidemia,-0.0
 chestpain,0.0
 dyspnea,-0.0
 str_seg_1,-0.0
 str_seg_4,0.0
 str_seg_5,0.0
-str_seg_6,0.0
+str_seg_6,-0.0
 str_seg_7,0.0
 str_seg_8,-0.0
 str_seg_9,0.0
@@ -28,5 +28,5 @@ max_lad_str,-0.0
 max_lcx_str,0.0
 max_rca_str,0.0
 non-zero pet segs,0.0
-PCA1,0.00031682879571981107
-PCA2,8.368994965794743e-05
+PCA1,0.00038413352560812163
+PCA2,0.0

@@ -583,10 +583,9 @@ def plot_final_results_by_time():
     for only_pet, (pet_fixed_year, no_pet_fixed_year) in zip([True, False], fixed_years):
 
         data_dir = os.getcwd() + f'\\Final test results{" only pet" if only_pet else ""}'
-        fig, (ax_pet, ax_no_pet, ax_diff) = plt.subplots(1, 3)
-        fig.set_size_inches(19.2, 6.4)
-        all_axes = [ax_pet, ax_no_pet, ax_diff]
-        axes = [ax_pet, ax_no_pet]
+        fig, (ax, ax_diff) = plt.subplots(1, 2)
+        fig.set_size_inches(12.8, 6.4)
+        all_axes = [ax, ax_diff]
         data_pet, data_no_pet = None, None
 
         for file in os.listdir(data_dir):
@@ -606,34 +605,109 @@ def plot_final_results_by_time():
         times_ind = [n for n in range(1, 9)]
         times_ind.append(10)
 
-        for (metr_pet, vals_pet), (metr_no_pet, vals_no_pet) in zip(data_pet.iteritems(), data_no_pet.iteritems()):
-            ax_pet.plot(times_ind, vals_pet, label=metr_pet)
-            ax_pet.scatter(times_ind, vals_pet)
-            ax_no_pet.plot(times_ind, vals_no_pet, label=metr_no_pet)
-            ax_no_pet.scatter(times_ind, vals_no_pet)
-            if metr_pet == "Test AUC":
-                ax_diff.plot(times_ind, vals_pet - vals_no_pet, label=metr_pet)
-                ax_diff.scatter(times_ind, vals_pet - vals_no_pet)
+        ax.plot(times_ind, data_pet['Test AUC'], label="Model using PET data")
+        ax.scatter(times_ind, data_pet['Test AUC'])
+        ax.plot(times_ind, data_no_pet['Test AUC'], label="Model not using PET data")
+        ax.scatter(times_ind, data_no_pet['Test AUC'])
+        ax_diff.plot(times_ind, data_pet['Test AUC'] - data_no_pet['Test AUC'], label="Test AUC", c='black')
+        ax_diff.scatter(times_ind, data_pet['Test AUC'] - data_no_pet['Test AUC'], c='black')
 
-        for ax in all_axes:
-            ax.legend()
-            ax.grid(True)
-            ax.set_xticks(times_ind)
-            ax.set_xticklabels(times_str)
+        for axs in all_axes:
+            axs.legend()
+            axs.grid(True)
+            axs.set_xticks(times_ind)
+            axs.set_xticklabels(times_str)
 
-        for ax in axes:
-            ax.set_ylim((0.4, 1))
+        ax.set_ylim((0.4, 1))
 
         ax_diff.set_ylim((-0.2, 0.2))
         ax_diff.set_ylabel("Difference")
 
-        ax_pet.set_title(f"Using PET data \n trained for {pet_fixed_year} years")
-        ax_no_pet.set_title(f"Not using PET data \n trained for {no_pet_fixed_year} years")
+        ax.set_title(f"Results of the models")
         ax_diff.set_title("Added value of using PET data")
 
         fig.suptitle(f"Results for {'only the PET patients' if only_pet else 'all patients'}")
 
         plt.savefig(f'Plots\\Final test results for {"PET" if only_pet else "all"} patients', dpi=600)
+
+    pass
+
+
+def plot_PCA_component_event_ratios_by_time():
+
+    settings = {'cta': True,
+                'basic': True,
+                'pet': True}
+
+    cta = CTA_class.CTA_class(**settings)
+    data = pd.read_csv("Training data.csv", index_col=0)
+    data = cta.data_fill_na.loc[data.index, :]
+
+    pca_mat = pd.read_csv("Result analysis\\pca_matrix_2_components.csv", index_col=0, header=0).drop(labels=["explained variance ratios"], axis=1)
+    pca_mat = pca_mat.transpose()
+    data = data.dot(pca_mat)
+    data.columns = ['PCA1', 'PCA2']
+    labels = pd.read_csv("Training labels.csv", index_col=0)
+
+    pca2_values = data['PCA2']
+    lower_q = pca2_values.quantile(0.25)
+    upper_q = pca2_values.quantile(0.75)
+    pca2_lower_quartile = pca2_values.loc[pca2_values <= lower_q]
+    pca2_upper_quartile = pca2_values.loc[pca2_values >= upper_q]
+    pca2_middle = pca2_values.loc[lower_q < pca2_values]
+    pca2_middle = pca2_middle.loc[pca2_middle < upper_q]
+
+    y_lower = labels.loc[pca2_lower_quartile.index, :]
+    y_middle = labels.loc[pca2_middle.index, :]
+    y_upper = labels.loc[pca2_upper_quartile.index, :]
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches((6.4, 6.4))
+
+    xs = list()
+    y_ls = list()
+    y_ms = list()
+    y_us = list()
+    for ind, col in enumerate(labels.columns):
+        y_l = y_lower[col]
+        y_m = y_middle[col]
+        y_u = y_upper[col]
+        year = ind
+        if col == "event":
+            continue
+
+        xs.append(year)
+        y_ls.append(y_l.sum()/len(y_l))
+        y_ms.append(y_m.sum()/len(y_m))
+        y_us.append(y_u.sum()/len(y_u))
+
+    col = "event"
+    y_l = y_lower[col]
+    y_m = y_middle[col]
+    y_u = y_upper[col]
+    year = 10
+
+    xs.append(year)
+    y_ls.append(y_l.sum() / len(y_l))
+    y_ms.append(y_m.sum() / len(y_m))
+    y_us.append(y_u.sum() / len(y_u))
+
+
+    ax.plot(xs, y_ls, label="First quartile")
+    ax.scatter(xs, y_ls)
+    ax.plot(xs, y_ms, label="Second and third quartile")
+    ax.scatter(xs, y_ms)
+    ax.plot(xs, y_us, label="Fourth quartile")
+    ax.scatter(xs, y_us)
+
+    ax.legend()
+
+    ax.set_ylabel("Ratio of positive events")
+    ax.set_xlabel("Observation year")
+    ax.set_xticks([n for n in range(1, 11)])
+    ax.set_xticklabels([n if n != 10 else "Unrestricted" for n in range(1, 11)])
+
+    plt.show()
 
     pass
 
@@ -645,5 +719,6 @@ if __name__ == "__main__":
     #plot_results_by_time()
     #plot_results_grouped_by_revasc()
     plot_final_results_by_time()
+    #plot_PCA_component_event_ratios_by_time()
 
     pass

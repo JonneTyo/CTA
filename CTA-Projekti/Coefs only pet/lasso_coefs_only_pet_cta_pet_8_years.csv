@@ -1,45 +1,45 @@
 ,0
-lm - type of stenosis,0.0012783709977439652
-lada - type of stenosis,-0.0004930209947759313
+lm - type of stenosis,0.001030711561490916
+lada - type of stenosis,-3.3627331261996568e-06
 ladb - type of stenosis,0.0
-ladc - type of stenosis,-0.0007994191728656031
+ladc - type of stenosis,-0.0013008629644555272
 d1 - type of stenosis,0.0
-d2 - type of stenosis,-0.0
-lcxa - type of stenosis,0.0011358830285798194
-lcxb - type of stenosis,0.0
-lcxc -type of stenosis,0.0005869326452259031
-lpd - type of stenosis,-0.00013721406076666015
-lom1 - type of stenosis,0.0
-lom2 - type of stenosis,-1.9245566639224924e-05
-im - type of stenosis,-4.159743207984773e-05
-lpl - type of stenosis,-0.0
-rcaa - type of stenosis,-0.0
-rcab - type of stenosis,0.0008446468382268995
-rcac - type of stenosis,-0.0
+d2 - type of stenosis,0.0
+lcxa - type of stenosis,2.8276475584181738e-05
+lcxb - type of stenosis,0.00019558549802489492
+lcxc -type of stenosis,0.0005426148672416406
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,-0.0007279935739533627
+lom2 - type of stenosis,-0.0
+im - type of stenosis,-0.0
+lpl - type of stenosis,-0.00024028073611525306
+rcaa - type of stenosis,0.0
+rcab - type of stenosis,0.00044268102306970413
+rcac - type of stenosis,0.0007128157700845318
 rpd - type of stenosis,-0.0
-rpl - type of stenosis,0.00012660582914720588
+rpl - type of stenosis,2.0151499559948063e-05
 str_seg_1,-0.0
 str_seg_4,0.0
 str_seg_5,-0.0
-str_seg_6,-0.00020828041514758087
-str_seg_7,-0.0
-str_seg_8,-0.0
-str_seg_9,0.0011029681782311032
-str_seg_10,0.0016600547928830624
+str_seg_6,-0.0
+str_seg_7,0.0
+str_seg_8,0.0
+str_seg_9,0.0012556062853310323
+str_seg_10,0.0
 str_seg_11,-0.0
-str_seg_12,-0.0006946714962495861
-str_seg_13,-0.0
+str_seg_12,-0.0
+str_seg_13,0.0
 str_seg_14,0.0
-str_seg_15,0.00011052352372651597
-str_seg_16,-0.0
-str_seg_17,-0.00046099671564841176
-stenosis type 1 count,0.0
+str_seg_15,0.0008479236461069104
+str_seg_16,-0.0008744836488479381
+str_seg_17,0.0
+stenosis type 1 count,-0.0
 stenosis type 2 count,-0.0
-max cta type,0.0005423913707634226
-max high risk cta type,0.0
+max cta type,0.0009923224223724926
+max high risk cta type,-0.0
 sis,-0.0
 max_str_seg,0.0
 max_lad_str,0.0
-max_lcx_str,0.0
-max_rca_str,0.0004702685739713613
+max_lcx_str,-0.0
+max_rca_str,0.0008031148156728976
 non-zero pet segs,-0.0

@@ -75,6 +75,7 @@ for category, cat_data in categories.items():
     for col, vals in cat_data.iteritems():
         _, p_val = shapiro(vals)
         df.loc[col, (category, 'Shapiro-Wilk p-value')] = p_val
+        df = df.round(decimals=3)
         df.loc[col, (category, 'Mean / Median')] = df.loc[col, (category, 'Median')] if p_val <= 0.05 else df.loc[col, (category, 'Mean')]
         lower_q = df.at[col, (category, "lower quartile")]
         upper_q = df.at[col, (category, "upper quartile")]

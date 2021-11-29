@@ -1,0 +1,32 @@
+,0
+sex,0.0
+age,0.0
+bmi,-0.000638586676227457
+smoking,0.0
+diabetes,-0.00015634993278326102
+hypertension,-0.0
+dyslipidemia,0.0
+chestpain,0.0
+dyspnea,-0.0015789371432492357
+str_seg_1,-0.0006252788083343322
+str_seg_4,0.0
+str_seg_5,0.0
+str_seg_6,0.0
+str_seg_7,-0.0
+str_seg_8,-0.0
+str_seg_9,0.00034787020750832234
+str_seg_10,7.512632092107706e-05
+str_seg_11,-0.0
+str_seg_12,-0.0
+str_seg_13,-0.0005796237354654949
+str_seg_14,-0.0
+str_seg_15,0.0
+str_seg_16,-0.0005535278696524606
+str_seg_17,-0.0
+max_str_seg,0.0005512196499265188
+max_lad_str,-0.0014352250370379162
+max_lcx_str,-0.0
+max_rca_str,0.0003137309995792895
+non-zero pet segs,-0.0
+PET PCA1,0.0014650684766758472
+PET PCA2,0.0006290041726993591

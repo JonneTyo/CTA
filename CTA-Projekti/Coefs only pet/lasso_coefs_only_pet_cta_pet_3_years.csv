@@ -1,43 +1,43 @@
 ,0
 lm - type of stenosis,0.0
-lada - type of stenosis,-9.227512141179564e-05
+lada - type of stenosis,-0.0
 ladb - type of stenosis,0.0
-ladc - type of stenosis,-0.0002950685990026628
-d1 - type of stenosis,4.385706006669578e-05
-d2 - type of stenosis,0.0
+ladc - type of stenosis,-0.00016126280424356133
+d1 - type of stenosis,0.00023320495631190844
+d2 - type of stenosis,-0.0
 lcxa - type of stenosis,0.0
-lcxb - type of stenosis,-0.0
-lcxc -type of stenosis,0.0003029411790517459
-lpd - type of stenosis,-0.0001409935727199392
-lom1 - type of stenosis,-0.00014676730374658223
+lcxb - type of stenosis,0.0
+lcxc -type of stenosis,0.0005673038012451602
+lpd - type of stenosis,-0.0
+lom1 - type of stenosis,0.0
 lom2 - type of stenosis,0.0
-im - type of stenosis,0.0
-lpl - type of stenosis,-0.0
-rcaa - type of stenosis,0.0007651850721641193
+im - type of stenosis,4.660125865079427e-05
+lpl - type of stenosis,0.0
+rcaa - type of stenosis,0.0003135024312649611
 rcab - type of stenosis,0.0
-rcac - type of stenosis,-0.0
-rpd - type of stenosis,0.0004717915903847127
-rpl - type of stenosis,-0.00023038895479400275
+rcac - type of stenosis,0.0
+rpd - type of stenosis,1.0616843141518102e-05
+rpl - type of stenosis,-3.6877484231021755e-05
 str_seg_1,-0.0
-str_seg_4,0.00037460995522350796
+str_seg_4,0.0005604621873917343
 str_seg_5,0.0
 str_seg_6,-0.0
-str_seg_7,0.0
+str_seg_7,-0.0
 str_seg_8,-0.0
-str_seg_9,0.0
-str_seg_10,0.0
-str_seg_11,-0.0
+str_seg_9,0.0006696863609527204
+str_seg_10,0.0004607786096439292
+str_seg_11,0.0
 str_seg_12,-0.0
-str_seg_13,-2.457865108197201e-06
+str_seg_13,-0.0
 str_seg_14,-0.0
-str_seg_15,0.0010325318992312903
-str_seg_16,-0.0
+str_seg_15,0.0
+str_seg_16,-0.0002738888841645321
 str_seg_17,-0.0
-stenosis type 1 count,0.0
+stenosis type 1 count,-0.0
 stenosis type 2 count,-0.0
 max cta type,0.0
 max high risk cta type,-0.0
-sis,-0.0007208871873524118
+sis,-0.00040062521136586366
 max_str_seg,0.0
 max_lad_str,-0.0
 max_lcx_str,0.0
