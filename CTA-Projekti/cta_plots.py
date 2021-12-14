@@ -6,13 +6,7 @@ import math
 from scipy.stats import shapiro
 import CTA_class
 
-# generates the used label based on the filename
-def get_event_from_file_name(file_name):
-    label = 'event'
-    label = 'cv ' + label if 'cv' in file_name else label
-    label = 'timed ' + label if 'timed' in file_name else label
-    return label
-
+# Helper function for setting the size of figures in matplotlib
 def set_fig_size(fig, left: float=0.1, right: float=0.9, top: float=0.95, bottom: float=0.05, size: tuple=(12.4, 9.6)):
     fig.subplotpars.left = left
     fig.subplotpars.right = right
@@ -20,103 +14,6 @@ def set_fig_size(fig, left: float=0.1, right: float=0.9, top: float=0.95, bottom
     fig.subplotpars.bottom = bottom
     fig.set_size_inches(size[0], size[1])
     return fig
-
-#returns a dic of all results with filename as keys and dataframe as items
-def get_result_data(path='\\Results'):
-
-    to_return = dict()
-    for f in os.listdir(os.getcwd() + path):
-        if f.endswith(".csv"):
-            df = pd.read_csv(os.getcwd() + path + '\\' + f, index_col=0)
-            to_return[f[:-4]] = df
-    return to_return
-
-#returns a dataframe with multi-index indices that contains data for each model-label pair
-def get_best_models(dfs, measure_by='sensitivity', split_by=None):
-    labels = ['event', 'cv event', 'timed event', 'timed cv event']
-    to_return = pd.DataFrame(index=labels, columns=CTA_class.CTA_class.METRICS.values())
-    to_return['Model'] = ""
-    to_return['Model Version'] = ""
-    to_return[measure_by] = -np.inf
-    for key, item in dfs.items():
-        label = get_event_from_file_name(key)
-        for ind, row in item.iterrows():
-            if to_return.at[label, measure_by] < row[measure_by]:
-                to_return.loc[label, row.index] = row
-                to_return['Model'] = ind
-                to_return['Model Version'] = key
-    return to_return
-
-# creates .csv files where each row has the results of the best data selection method
-def get_best_results():
-    all_results = get_result_data()
-    split_by = 'only_PET'
-
-    for m in ['Sensitivity', 'Test AUC']:
-        best_results = get_best_models(all_results, measure_by=m, split_by=split_by)
-        best_results.to_csv(os.getcwd() + f'\\Result analysis\\best_results_{m}.csv')
-    print(best_results)
-    pass
-
-
-def plot_hist_passed_time_events(data, labels):
-    x = data.loc[:, 'passed time'].fillna(-1)/365
-    x = x.astype(int)
-    to_return = dict()
-
-    for l in labels:
-        plt.clf()
-        pos_lbls = data[l] >= 1
-        x_pos = x.loc[pos_lbls]
-        vals, *_ = plt.hist(x_pos, rwidth=0.8, bins=[n for n in range(max(x_pos) + 1)])
-        plt.xlabel('Years passed since start of follow-up')
-        plt.title(f'{l}, N={len(x_pos)}')
-        plt.xticks(np.arange(0.1, (max(x_pos) + 1), step=1), labels=[n for n in range(max(x_pos) + 1)])
-        plt.savefig(f'Plots\\hist_passed_time_{l}')
-        to_return[l] = vals
-    return to_return
-
-# plots a histogram where x-axis shows the number of missing variables and y the number of patients.
-def plot_hist_missing_vars(df):
-    na_n = df.isna().sum(axis=1)
-    plt.clf()
-    plt.xlabel("# of missing variables")
-    plt.ylabel("# patients")
-    plt.title(f'# of patients = {len(df.index)}')
-    plt.hist(na_n, bins=[10 * i for i in range(int(na_n.min() / 10), int(na_n.max() / 10 + 1))])
-
-    plt.savefig('Plots\\hist_of_n_patients_with_x_missing_vars_new.png')
-    pass
-
-# Calculates the differences between results when a setting is turned on/off
-def get_setting_differences():
-    settings = ['keep_cta', 'keep_pet']
-
-    to_return = pd.DataFrame(index=settings, columns=CTA_class.CTA_class.METRICS.values())
-    for setting in settings:
-        df_setting = pd.Series(data=0, index=CTA_class.CTA_class.METRICS.values(), dtype='float64')
-        df_no_setting = pd.Series(data=0, index=CTA_class.CTA_class.METRICS.values(), dtype='float64')
-        n_setting_files, n_no_setting_files = 0, 0
-        for f in os.listdir(os.getcwd() + '\\Results'):
-
-            if setting == 'keep_pet':
-                if 'keep_cta' not in f:
-                    continue
-
-            if 'timed' not in f or 'cv' not in f:
-                continue
-            temp = pd.read_csv(os.getcwd() + '\\Results\\' + f, index_col=0, header=0).mean(axis=0)
-            if setting in f:
-                df_setting += temp
-                n_setting_files += 1
-            else:
-                df_no_setting += temp
-                n_no_setting_files += 1
-
-        df_no_setting = df_no_setting*n_setting_files/n_no_setting_files
-        temp = (df_setting - df_no_setting)/(n_setting_files + n_no_setting_files)
-        to_return.loc[setting, :] = temp
-    to_return.to_csv(os.getcwd() + '\\Result analysis\\settings_differences_timed_cv.csv')
 
 
 def plot_hist_passed_time(data):
@@ -161,6 +58,8 @@ def get_best_test_auc_scores(df, only_pet_patients, use_pet_data, analyzer, time
                 df.loc[t, :] = values.iloc[0, :]
     return df
 
+# Calculates the best model based on the mean Test AUC-score and returns a dataframe,
+# with prediction year as indices and the training/fixed year on columns and the test_AUC score as the values.
 def get_best_overall_model(df, only_pet_patients, use_pet_data, analyzer, times, min_time, max_time, use_fixed_years=False):
 
     # Setting up variables for the analyzer.gen_results method
@@ -260,12 +159,14 @@ def get_best_overall_model(df, only_pet_patients, use_pet_data, analyzer, times,
             df.loc[t, t_fixed] = val
     return df
 
+
+# Generator that iterates through all the files in results_dir and yields the file name and pd.dataframe if the file is a .csv
 def iterate_results(results_dir=CTA_class.RESULTS_DIR):
     for f in os.listdir(results_dir):
         if f.endswith(".csv"):
             yield f, pd.read_csv(results_dir + '\\' + f, index_col=0, header=[0,1])
 
-#takes in a dataframe with different models on indices and returns the col
+# takes in a dataframe with different models on indices and returns the col
 # with best linearly weighted averages
 def best_model_linear_weighting(df: pd.DataFrame):
 
@@ -309,6 +210,8 @@ def plot_results_by_time(min_time=1, max_time=8, include_unlimited_time=True, on
         for use_pet_data in [True, False]:
             result_category = "pet patients" if only_pet_patients else "all patients"
             result_category = result_category + " using pet" if use_pet_data else result_category + " no pet"
+
+            # Choose one method to get the results.
             results[result_category] = get_best_overall_model(results[result_category], only_pet_patients, use_pet_data, analyzer, times, min_time, max_time, use_fixed_years=True)
             #results[result_category] = get_best_test_auc_scores(results[result_category], only_pet_patients, use_pet_data, analyzer, times, min_time, max_time)
 
@@ -356,7 +259,7 @@ def plot_results_by_time(min_time=1, max_time=8, include_unlimited_time=True, on
 
 
         fig.suptitle("Model results when using all patients" if not only_pet_patients else "Model results when using only PET patients")
-        plt.savefig(os.getcwd() + f"\\Plots\\best_TRAINING_model_{'only pet patients' if only_pet_patients else 'all patients'}_fixed_years_UNFINISHED.png")
+        plt.savefig(os.getcwd() + f"\\Plots\\best_TRAINING_model_{'only pet patients' if only_pet_patients else 'all patients'}_fixed_years.png")
 
 
 def plot_hist_PCA_values():
@@ -575,7 +478,8 @@ def plot_results_grouped_by_revasc(min_time=1, max_time=8, include_unlimited_tim
         plt.legend()
         plt.savefig(os.getcwd() + f'\\Plots\\results_by_revasc_for_{key}', dpi=600)
 
-
+# Plots 2 axes, on the left the results of the best model using PET-data and the best model using only CTA-data.
+# On the right is plotted the difference (PET - CTA).
 def plot_final_results_by_time():
 
     fixed_years = ((7, 8), (3, 5))
@@ -677,9 +581,9 @@ def plot_PCA_component_event_ratios_by_time():
             continue
 
         xs.append(year)
-        y_ls.append(y_l.sum()/len(y_l))
-        y_ms.append(y_m.sum()/len(y_m))
-        y_us.append(y_u.sum()/len(y_u))
+        y_ls.append(y_l.sum()/labels[col].sum())
+        y_ms.append(y_m.sum()/labels[col].sum()/2)
+        y_us.append(y_u.sum()/labels[col].sum())
 
     col = "event"
     y_l = y_lower[col]
@@ -688,21 +592,21 @@ def plot_PCA_component_event_ratios_by_time():
     year = 10
 
     xs.append(year)
-    y_ls.append(y_l.sum() / len(y_l))
-    y_ms.append(y_m.sum() / len(y_m))
-    y_us.append(y_u.sum() / len(y_u))
+    y_ls.append(y_l.sum() / labels[col].sum())
+    y_ms.append(y_m.sum() / labels[col].sum()/2)
+    y_us.append(y_u.sum() / labels[col].sum())
 
 
     ax.plot(xs, y_ls, label="First quartile")
     ax.scatter(xs, y_ls)
-    ax.plot(xs, y_ms, label="Second and third quartile")
+    ax.plot(xs, y_ms, label="Average of second and third quartile")
     ax.scatter(xs, y_ms)
     ax.plot(xs, y_us, label="Fourth quartile")
     ax.scatter(xs, y_us)
 
     ax.legend()
 
-    ax.set_ylabel("Ratio of positive events")
+    ax.set_ylabel("Proportion of positive events")
     ax.set_xlabel("Observation year")
     ax.set_xticks([n for n in range(1, 11)])
     ax.set_xticklabels([n if n != 10 else "Unrestricted" for n in range(1, 11)])
@@ -712,13 +616,46 @@ def plot_PCA_component_event_ratios_by_time():
     pass
 
 
+def plot_kaplan_meier():
+    import kaplanmeier as km
+    predictions_dir = os.getcwd() + '\\Predictions'
+    label_file_names = {'Training': 'Training labels.csv',
+              'Test': 'Test labels.csv'}
+    time_file_path = os.getcwd() + '\\Data\\Processed Data\\Original data.csv'
+    all_times = pd.read_csv(time_file_path, index_col=0, header=0)
+    for file_name in iterate_files(predictions_dir):
+        for group in ['Training', 'Test']:
+            if group not in file_name:
+                continue
+
+            predictions = pd.read_csv(file_name, index_col=0, header=0)
+            predictions = predictions['binary']
+            labels = pd.read_csv(label_file_names[group], index_col=0, header=0)
+            labels = labels.loc[predictions.index, 'event']
+            times = all_times.loc[predictions.index, 'passed time']
+            out = km.fit(times, labels, predictions)
+            km.plot(out)
+            plt.suptitle(file_name[49:])
+            plt.savefig(f'Plots\\{file_name[49:]}.png', dpi=600)
+
+    pass
+
+
+def iterate_files(dir):
+    for f in os.listdir(dir):
+        if f.endswith(".csv"):
+            yield dir + '\\' + f
+    pass
+
+
 if __name__ == "__main__":
 
     #plot_hist_PCA_values()
     #plot_scatter_PCA_values()
     #plot_results_by_time()
     #plot_results_grouped_by_revasc()
-    plot_final_results_by_time()
+    #plot_final_results_by_time()
     #plot_PCA_component_event_ratios_by_time()
+    plot_kaplan_meier()
 
     pass
