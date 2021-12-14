@@ -1,12 +1,11 @@
 from CTA_class import CTA_class
-from CTA_class import iter_options
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from scipy.stats import kruskal
 import os
 
 
+# splits data and labels into train and test groups so that they are statistically similar
 def get_similar_train_test_splits(data, labels, p_val_th=0.05):
     for i in range(1000):
         data_is_similar = True
@@ -44,6 +43,25 @@ def get_similar_train_test_splits(data, labels, p_val_th=0.05):
     return X_train, X_test, y_train, y_test
 
 
+# Takes in two dictionaries with same keys. model_predictions must contain iterables while bin_ths must contain floats.
+# Returns a new dictionary with same keys where the values of model_predictions have been turned into binary values
+# based on whether or not they are larger than the corresponding bin_ths value.
+def float_to_binary_pred(model_predictions, bin_ths):
+    to_return = dict()
+    for model_name in model_predictions.keys():
+        pred = model_predictions[model_name]
+        th = bin_ths[model_name]
+        bin_pred = [int(p >= th) for p in pred]
+        to_return[model_name] = bin_pred
+
+    return to_return
+
+
+#########################################################
+#########################################################
+# Creating the training and test sets
+#########################################################
+#########################################################
 setting_dict = {
     'pet': True,
     'cta': True,
@@ -94,6 +112,12 @@ X_train_pet.to_csv("PET Training data filled.csv")
 X_test.to_csv("Test data filled.csv")
 X_test_pet.to_csv("PET Test data filled.csv")
 
+#########################################################
+#########################################################
+# Training the models
+#########################################################
+#########################################################
+
 curr_opt_count = 1
 obs_years = [1, 2, 3, 4, 5, 6, 7, 8, None]
 
@@ -102,6 +126,9 @@ pet_patients_str = "selected patients"
 using_pet_data_str = "using PET data"
 not_using_pet_data_str = "not using PET data"
 
+
+# Dictionary to help determine which models should be chosen based on earlier analysis
+# DO NOT CHANGE UNLESS YOU KNOW WHAT YOU'RE DOING
 final_models = {all_patients_str + ' ' + using_pet_data_str:
                     (3,
                      {'pet': True,
@@ -129,24 +156,21 @@ final_models = {all_patients_str + ' ' + using_pet_data_str:
                 }, 'linreg')}
 
 
-# Takes in two dictionaries with same keys. model_predictions must contain iterables while bin_ths must contain floats.
-# Returns a new dictionary with same keys where the values of model_predictions have been turned into binary values
-# based on whether or not they are larger than the corresponding bin_ths value.
-def float_to_binary_pred(model_predictions, bin_ths):
-    to_return = dict()
-    for model_name in model_predictions.keys():
-        pred = model_predictions[model_name]
-        th = bin_ths[model_name]
-        bin_pred = [int(p >= th) for p in pred]
-        to_return[model_name] = bin_pred
+'''
+Training loop to train the models.
 
-    return to_return
+model_opt is a string that describes whether or not the model is using all patients or just the PET-patients,
+and whether PET-data is being used or not.
 
+fixed_year is the observation year the model should be trained on
 
+opt is a dictionary for the CTA_class
+
+model_name is the name of the actual mathematical model (linreg, lasso, etc.)
+'''
 for model_opt, (fixed_year, opt, model_name) in final_models.items():
 
-
-
+    # Setting the model up for training
     only_pet = pet_patients_str in model_opt
     event_str = f'event {fixed_year} years'
     cta = CTA_class(**opt)
@@ -157,13 +181,14 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
     cta.X_train, cta.X_test, cta.y_train, cta.y_test = X_train.loc[:, cta.data.columns], X_test.loc[:, cta.data.columns], y_train.loc[:, event_str].astype(int), y_test.loc[:, event_str].astype(int)
     if only_pet:
         cta.X_train, cta.X_test, cta.y_train, cta.y_test = X_train_pet.loc[:, cta.data.columns], X_test_pet.loc[:, cta.data.columns], y_train_pet.loc[:, event_str].astype(int), y_test_pet.loc[:, event_str].astype(int)
-
     categories = ['value', 'binary']
     training_predictions = pd.DataFrame(index=cta.X_train.index, columns=categories)
     test_predictions = pd.DataFrame(index=cta.X_test.index, columns=categories)
+
+    # Training and predicting, and storing of the actual predictions
     cta.train_models()
     cta.predict(cta.X_train)
-    bin_ths = cta.binary_threshold
+    bin_ths = cta.binary_threshold  # Storing the binary thresholds of each model using the training sets predictions
     training_predictions['value'] = cta.model_predictions[model_name]
     training_predictions['binary'] = float_to_binary_pred(cta.model_predictions, bin_ths)[model_name]
     cta.predict(cta.X_test)
@@ -173,13 +198,14 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
     training_predictions.to_csv(f"Predictions\\Training predictions {cta.settings_to_str}.csv")
     test_predictions.to_csv(f'Predictions\\Test predictions {cta.settings_to_str}.csv')
 
-
+    # Changing the latest predictions (test group) into binary values using the binary thresholds stored
     cta.model_predictions = float_to_binary_pred(cta.model_predictions, bin_ths)
+
+    # Getting the final results for each observation year
     results = pd.DataFrame(index=[n if n else 'Unrestricted' for n in obs_years], columns=cta.results.columns)
     for obs_year in obs_years:
 
         obs_year_str = f'event {obs_year} years' if obs_year else f'event'
-
 
         obs_year_ind = obs_year if obs_year else "Unrestricted"
         cta.label = obs_year_str
@@ -189,63 +215,3 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
         #print(cta.results)
 
     results.to_csv(os.getcwd() + f'\\Final test results{" only pet" if only_pet else ""}\\{model_opt}.csv')
-
-
-    # print(f"Starting option no. {curr_opt_count}")
-    # cta = CTA_class(**opt)
-    #
-    # cta.X_train, cta.X_test, cta.y_train = X_train.loc[:, cta.data.columns], X_test.loc[:, cta.data.columns], y_train.loc[:,
-    #                                                                                                           fixed_year_str].astype(int)
-    # cta.label = fixed_year_str
-    # cta.y_test = y_test.loc[:, cta.label].astype(int)
-    # # cta.train_models()
-    # # cta.predict(cta.X_train)
-    # cta.predict(cta.X_test)
-    # bin_ths = cta.binary_threshold
-    # cta.model_predictions = float_to_binary_pred(cta.model_predictions, bin_ths)
-    # for event in events:
-    #     cta.y_train = y_train.loc[:, event].astype(int)
-    #     cta.label = event
-    #
-    #     # cta.train_models()
-    #     # cta.predict(cta.X_train)
-    #     # train_results = cta.training_results
-    #     # train_results.to_csv(os.getcwd() + f'\\Final results\\{cta.settings_to_str}_TRAINING_{event}.csv')
-    #     # cta.y_test = y_test.loc[:, event].astype(int)
-    #     # cta.predict(cta.X_test)
-    #     # cta.model_predictions = float_to_binary_pred(cta.model_predictions, bin_ths)
-    #
-    #     results = cta.training_results
-    #     results.to_csv(os.getcwd() + f'\\Final results\\{cta.settings_to_str}_{event}_fixed_years_{fixed_year}.csv')
-    #
-    # print("PET version")
-    # cta_pet = CTA_class(only_pet=True, **opt)
-    # cta_pet.X_train, cta_pet.X_test, cta_pet.y_train = X_train_pet.loc[:, cta_pet.data.columns], X_test_pet.loc[:,
-    #                                                                                              cta_pet.data.columns], y_train_pet.loc[:,
-    #                                                                                                                     fixed_year_str].astype(
-    #     int)
-    # cta_pet.label = fixed_year_str
-    # cta_pet.y_test = y_test_pet.loc[:, cta_pet.label].astype(int)
-    # cta_pet.train_models()
-    # # cta_pet.predict(cta_pet.X_train)
-    # cta_pet.predict(cta_pet.X_test)
-    # bin_ths_pet = cta_pet.binary_threshold
-    # cta_pet.model_predictions = float_to_binary_pred(cta_pet.model_predictions, bin_ths_pet)
-    # for event in events:
-    #     cta_pet.y_train = y_train_pet.loc[:, event].astype(int)
-    #
-    #     cta_pet.label = event
-    #
-    #     # cta_pet.train_models()
-    #     # cta_pet.predict(cta_pet.X_train)
-    #     # train_results = cta_pet.training_results
-    #     # train_results.to_csv(os.getcwd() + f'\\Final results only pet\\{cta_pet.settings_to_str}_TRAINING_{event}.csv')
-    #
-    #     # cta_pet.y_test = y_test_pet.loc[:, event].astype(int)
-    #     # cta_pet.predict(cta_pet.X_test)
-    #     # cta_pet.model_predictions = float_to_binary_pred(cta_pet.model_predictions, bin_ths_pet)
-    #
-    #     results = cta_pet.training_results
-    #     results.to_csv(os.getcwd() + f'\\Final results only pet\\{cta_pet.settings_to_str}_{event}_fixed_years_{fixed_year}.csv')
-    #
-    # curr_opt_count += 1
