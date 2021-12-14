@@ -11,6 +11,12 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+##############################################################
+##############################################################
+# Required directories
+##############################################################
+##############################################################
+
 DATA_DIR = os.getcwd() + '\\Data'
 ORIGINAL_DATA_DIR = DATA_DIR + '\\Original Data'
 PROCESSED_DATA_DIR = DATA_DIR + '\\Processed Data'
@@ -19,6 +25,12 @@ RESULTS_PET_DIR = os.getcwd() + '\\Results only pet'
 COEFS_DIR = os.getcwd() + '\\Coefs'
 COEFS_PET_DIR = os.getcwd() + '\\Coefs only pet'
 PLOTS_DIR = os.getcwd() + '\\Plots'
+
+##############################################################
+##############################################################
+# Helper functions
+##############################################################
+##############################################################
 
 
 # decorator which prints the change in the number of rows and columns the given function does
@@ -34,6 +46,7 @@ def print_change_in_patients(f):
 
     return wrapper_func
 
+
 # extends the parameter the_list by the columns that were added by the function this function is decorating
 def add_new_var_to_type_list(the_list):
     def decorator_func(f):
@@ -48,32 +61,36 @@ def add_new_var_to_type_list(the_list):
     return decorator_func
 
 
-class CTA_data_dictionary:
-    dic_name = 'CTArekisteri_DataDictionary_2021-04-06.csv'
-    dic_path = ORIGINAL_DATA_DIR + '\\' + dic_name
+'''
+The purpose of this class is to read in the original raw data and format it into a more usable form.
+Preliminary combing of the data is also done here, meaning some patients with missing labels or too much missing data
+is dropped here, as well as some variables that don't have enough data and/or are not of interest. This also deals with missing values
+apart from PET-variables, which are dealt with later.
 
-    def __init__(self):
-        self.data = pd.read_csv(self.dic_path, header=0)
-        self.data.at[317, 'Field Label'] = 'Tutkimus'
-        self.data['Field Label Lower'] = [n.lower() for n in self.data['Field Label']]
+This class also combines some of the categories for some of the basic and risk variables and also rearranges them
+in order to gain better results for linear models.
 
-    @property
-    def cta(self):
-        return self.get_field_labels('cta')
+This class also categorizes each variable into one of the following categories:
+Basic
+Risk
+Cardio Label
+Label
+CTA
+PET
+PCA - regular PCA on all patients
+CTAPCA - PCA without the use of PET variables on all patients
+PET PCA - regular PCA on PET-patients
+PET CTAPCA - PCA without the use of PET variables on PET-patients
 
-    @property
-    def pet(self):
-        return self.get_field_labels('perfuusio')
+These categories are stored into .csv files with corresponding names and the variables that belong
+to the category can be found there.
 
-    @property
-    def perustiedot(self):
-        return self.get_field_labels('perustiedot')
 
-    def get_field_labels(self, param, lower=True):
-        if lower:
-            return self.data.loc[self.data['Form Name'] == param]['Field Label Lower']
-        return self.data.loc[self.data['Form Name'] == param]['Field Label']
-        pass
+ULTIMATELY, this class creates two files: Original data.csv and Processed data.csv, which must be located in ~\Data\Processed Data
+Original data.csv contains the final data to be used when one wants to inspect the data as a whole.
+Processed data.csv contains the same as original data, but with z-standardization done.
+This should be used for any mathematical or statistical analysis, like PCA, machine learning, etc.
+'''
 
 
 class CTA_data_formatter:
@@ -691,6 +708,20 @@ class CTA_data_formatter:
         pass
 
 
+'''
+This class is responsible for the actual training of the models as well as storing the results.
+
+Key keywords (Settings):
+
+basic - bool, should the basic and risk variables be used
+cta - bool, whether or not the models should use cta variables
+pet - bool, same as above but for pet
+only_pet - bool, should the models only use the PET-patients, affects which pca values are being used
+pca - bool, should the pca values be used
+ctapca - bool, should the ctapca values be used
+'''
+
+
 class CTA_class:
     N_ITERATIONS = 100
     MODELS = ['lasso', 'linreg', 'SVR10', 'ridge']
@@ -766,6 +797,7 @@ class CTA_class:
                     item.to_csv(COEFS_DIR + f'\\{key}_coefs{self.settings_to_str}.csv')
         return df
 
+    # Returns the data being used with the current settings
     @property
     def data(self):
 
@@ -817,6 +849,7 @@ class CTA_class:
         df.drop(labels=['late revasc'], axis=1, inplace=True)
         return df
 
+    # Returns the data being used with current settings but with missing values filled with the median of that variable
     @property
     def data_fill_na(self):
         df = self.data
@@ -831,6 +864,7 @@ class CTA_class:
         df.fillna(fill_dict, inplace=True)
         return df
 
+    # Returns the labels of the data being used
     @property
     def labels(self):
         if hasattr(self, 'pred_revasc') and self.pred_revasc:
@@ -839,6 +873,7 @@ class CTA_class:
             return self.original_data.loc[self.data.index, [self.label, 'late revasc']].max(axis=1)
         return self.original_data.loc[self.data.index, self.label]
 
+    # Deprecated, don't use.
     @property
     def labels_time_th(self):
         if hasattr(self, 'pred_revasc') and self.pred_revasc:
@@ -851,6 +886,7 @@ class CTA_class:
     def metric_names(self):
         return [n for n in CTA_class.METRICS.values()]
 
+    # Returns a string based on the settings that are being used
     @property
     def settings_to_str(self):
         to_return = ''
@@ -882,35 +918,14 @@ class CTA_class:
             yth_train, yth_test = labels_time_th.iloc[train_ind], labels_time_th.iloc[test_ind]
             yield X_train, X_test, y_train, y_test, yth_train, yth_test
 
-
-        # from sklearn.model_selection import train_test_split
-        # if random_state is None:
-        #     random_state = datetime.datetime.now().microsecond % 1000
-        # pos_filter, neg_filter = labels > 0, labels <= 0
-        # pos_d, pos_l, neg_d, neg_l = data[pos_filter], labels[pos_filter], data[neg_filter], labels[neg_filter]
-        #
-        # x_train1, x_test1, y_train1, y_test1 = train_test_split(pos_d, pos_l, train_size=train_ratio, random_state=random_state)
-        # x_train2, x_test2, y_train2, y_test2 = train_test_split(neg_d, neg_l, train_size=train_ratio, random_state=random_state)
-        # x_train1 = np.append(x_train1, x_train2, axis=0)
-        # x_test1 = np.append(x_test1, x_test2, axis=0)
-        # y_train1 = np.append(y_train1.to_frame(), y_train2.to_frame(), axis=0)
-        # y_test1 = np.append(y_test1.to_frame(), y_test2.to_frame(), axis=0)
-        # x_train1 = np.append(x_train1, y_train1, axis=1)
-        # x_test1 = np.append(x_test1, y_test1, axis=1)
-        # np.random.shuffle(x_train1)
-        # np.random.shuffle(x_test1)
-        # x_train1 = x_train1.astype(float)
-        # x_test1 = x_test1.astype(float)
-        #
-        # return x_train1[:, :-y_train1.shape[1]], x_test1[:, :-y_test1.shape[1]], x_train1[:, -y_train1.shape[1]:].ravel(), x_test1[:,
-        #                                                                                                                    -y_test1.shape[
-        #                                                                                                                        1]:].ravel()
-
+    # Trains the models based on the current X_train and y_train values
     def train_models(self):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {model_name: executor.submit(model.fit, self.X_train, self.y_train) for (model_name, model) in self.models.items()}
         pass
 
+    # Predicts for the data X and stores it into self.model_predictions.
+    # If this is the first time this method is called, also stores the thresholds into self.binary_threshold
     def predict(self, X):
         def youden(sens, spec, th):
             return th[np.argmax(sens + spec)]
@@ -923,6 +938,9 @@ class CTA_class:
                 self.binary_threshold[model_name] = th
         pass
 
+    # Looks up the predictions in model_predictions and calculates all the metric values
+    # based on the current self.y_test values.
+    # The resulting dataframe is a multi index frame with data separated based on revascularization status.
     @property
     def results(self):
         revasc_options = ['all', 'no revasc', 'with revasc']
@@ -944,6 +962,7 @@ class CTA_class:
                             result_df.at[model_name, (option, CTA_class.METRICS[metric])] = metric_f(self.y_test.loc[temp_pred.index], temp_pred)
         return result_df
 
+    # Same as results, but comparing to self.y_train instead.
     @property
     def training_results(self):
         revasc_options = ['all', 'no revasc', 'with revasc']
@@ -1006,6 +1025,7 @@ class CTA_class:
             total += v
         return total / len(given_pred)
 
+    # Deprecated, don't use.
     def train_keras(self, new_weights_save_path=os.getcwd() + '\\keras_weights.hdf5', old_weights_save_path=None, n_epochs=20):
 
         x_train = self.reshape_for_keras(self.X_train).astype('float64')
@@ -1040,12 +1060,14 @@ class CTA_class:
         self.keras_th = self.calculate_keras_th(x_val, y_val)
         pass
 
+    # Deprecated, don't use.
     def keras_predict(self):
         x = self.reshape_for_keras(self.X_test).astype('float64')
         pred = self.keras_model.predict(x).flatten()
         self.model_predictions['keras'] = pred
         pass
 
+    # Deprecated, don't use.
     # return th for predicting binary values
     def calculate_keras_th(self, x_val, y_val):
 
@@ -1058,6 +1080,7 @@ class CTA_class:
         spec = 1-fpr
         return youden(sens, spec, ths)
 
+    # Deprecated, don't use.
     def reshape_for_keras(self, X):
         n_padding = 17 - X.shape[1]
         n_padding = np.zeros((X.shape[0], n_padding))
@@ -1092,7 +1115,6 @@ class CTA_class:
 
 
         pass
-
 
 # create required directories if they do not exist
 for val in CTA_data_formatter.REQ_DIRS:
@@ -1156,6 +1178,11 @@ CUSTOM_VARIABLES = {
         'PET CTA PCA components': CTA_data_formatter.create_petctapca_component_values
     }
 
+
+##############################################################
+##############################################################
+##############################################################
+# Most of here is mainly outdated, but if untouched, the data can still be formatted.
 if __name__ == "__main__":
     format_original_data = True
     iterate_all_options = True
