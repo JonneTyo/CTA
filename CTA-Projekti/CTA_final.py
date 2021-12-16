@@ -62,6 +62,7 @@ def float_to_binary_pred(model_predictions, bin_ths):
 # Creating the training and test sets
 #########################################################
 #########################################################
+
 setting_dict = {
     'pet': True,
     'cta': True,
@@ -129,6 +130,7 @@ not_using_pet_data_str = "not using PET data"
 
 # Dictionary to help determine which models should be chosen based on earlier analysis
 # DO NOT CHANGE UNLESS YOU KNOW WHAT YOU'RE DOING
+# tuples are: (the year for which we train the model, CTA_class options (which variables to use), the mathematical model name)
 final_models = {all_patients_str + ' ' + using_pet_data_str:
                     (3,
                      {'pet': True,
@@ -186,7 +188,7 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
     test_predictions = pd.DataFrame(index=cta.X_test.index, columns=categories)
 
     # Training and predicting, and storing of the actual predictions
-    cta.train_models()
+    cta.train_models() #cta.models[model_name]
     cta.predict(cta.X_train)
     bin_ths = cta.binary_threshold  # Storing the binary thresholds of each model using the training sets predictions
     training_predictions['value'] = cta.model_predictions[model_name]
@@ -212,6 +214,6 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
         cta.y_test = y_test.loc[:, obs_year_str].astype(int) if not only_pet else y_test_pet.loc[:, obs_year_str].astype(int)
         #cta.y_train = y_train.loc[:, obs_year_str].astype(int) if not only_pet else y_train_pet.loc[:, obs_year_str].astype(int)
         results.loc[obs_year_ind, :] = cta.results.loc[model_name, :]
-        #print(cta.results)
+        print(cta.results)
 
     results.to_csv(os.getcwd() + f'\\Final test results{" only pet" if only_pet else ""}\\{model_opt}.csv')

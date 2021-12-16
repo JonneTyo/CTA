@@ -617,7 +617,7 @@ def plot_PCA_component_event_ratios_by_time():
 
 
 def plot_kaplan_meier():
-    import kaplanmeier as km
+    import kaplanmeier as km #TODO tähän täytyy viitata
     predictions_dir = os.getcwd() + '\\Predictions'
     label_file_names = {'Training': 'Training labels.csv',
               'Test': 'Test labels.csv'}
