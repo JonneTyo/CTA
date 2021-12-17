@@ -617,7 +617,7 @@ def plot_PCA_component_event_ratios_by_time():
 
 
 def plot_kaplan_meier():
-    import kaplanmeier as km #TODO tähän täytyy viitata
+    import lifelines.fitters.kaplan_meier_fitter as kmf
     predictions_dir = os.getcwd() + '\\Predictions'
     label_file_names = {'Training': 'Training labels.csv',
               'Test': 'Test labels.csv'}
@@ -633,10 +633,15 @@ def plot_kaplan_meier():
             labels = pd.read_csv(label_file_names[group], index_col=0, header=0)
             labels = labels.loc[predictions.index, 'event']
             times = all_times.loc[predictions.index, 'passed time']
-            out = km.fit(times, labels, predictions)
-            km.plot(out)
+            kaplan = kmf.KaplanMeierFitter()
+            pos = (predictions == 1)
+            kaplan.fit(times[pos], labels[pos], label='1')
+            kaplan.plot_survival_function()
+            kaplan.fit(times[~pos], labels[~pos], label='0')
+            kaplan.plot_survival_function()
             plt.suptitle(file_name[49:])
             plt.savefig(f'Plots\\{file_name[49:]}.png', dpi=600)
+            plt.clf()
 
     pass
 
@@ -650,12 +655,9 @@ def iterate_files(dir):
 
 if __name__ == "__main__":
 
-    #plot_hist_PCA_values()
-    #plot_scatter_PCA_values()
-    #plot_results_by_time()
-    #plot_results_grouped_by_revasc()
+    #NÄMÄ AINAKIN TOIMII / NÄITÄ KUVIA KÄYTETÄÄN
     #plot_final_results_by_time()
     #plot_PCA_component_event_ratios_by_time()
-    plot_kaplan_meier()
+    #plot_kaplan_meier()
 
     pass

@@ -214,6 +214,5 @@ for model_opt, (fixed_year, opt, model_name) in final_models.items():
         cta.y_test = y_test.loc[:, obs_year_str].astype(int) if not only_pet else y_test_pet.loc[:, obs_year_str].astype(int)
         #cta.y_train = y_train.loc[:, obs_year_str].astype(int) if not only_pet else y_train_pet.loc[:, obs_year_str].astype(int)
         results.loc[obs_year_ind, :] = cta.results.loc[model_name, :]
-        print(cta.results)
 
     results.to_csv(os.getcwd() + f'\\Final test results{" only pet" if only_pet else ""}\\{model_opt}.csv')
